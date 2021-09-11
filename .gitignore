@@ -1,0 +1,8 @@
+.env
+drivers/
+secrets/
+target/
+logs/
+backup/
+venv/
+*.java
