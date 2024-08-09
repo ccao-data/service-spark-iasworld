@@ -5,3 +5,6 @@ dependencies = [
   "py4j",
   "pyarrow"
 ]
+
+[tool.ruff]
+line-length = 79
