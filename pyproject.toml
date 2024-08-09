@@ -1,0 +1,7 @@
+[project]
+name = "service-spark-iasworld"
+version = "0.0.1"
+dependencies = [
+  "py4j",
+  "pyarrow"
+]
