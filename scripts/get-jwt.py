@@ -15,7 +15,7 @@ with open(GH_PEM_PATH, "rb") as pem_file:
 payload = {
     "iat": int(time.time()),
     "exp": int(time.time()) + 60,
-    "iss": GH_APP_ID
+    "iss": GH_APP_ID,
 }
 
 jwt_instance = jwt.JWT()

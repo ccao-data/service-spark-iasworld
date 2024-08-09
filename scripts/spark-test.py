@@ -11,7 +11,9 @@ IPTS_USERNAME = os.getenv("IPTS_USERNAME")
 with open("/run/secrets/IPTS_PASSWORD", "r") as file:
     IPTS_PASSWORD = file.read().strip()
 
-database_url = f"jdbc:oracle:thin:@//{IPTS_HOSTNAME}:{IPTS_PORT}/{IPTS_SERVICE_NAME}"
+database_url = (
+    f"jdbc:oracle:thin:@//{IPTS_HOSTNAME}:{IPTS_PORT}/{IPTS_SERVICE_NAME}"
+)
 driver_path = "/jdbc/ojdbc8.jar"
 
 spark = (
@@ -24,9 +26,10 @@ spark = (
     .getOrCreate()
 )
 
+
 def read_predicates_from_csv(file_path):
     predicates = []
-    with open(file_path, mode='r') as file:
+    with open(file_path, mode="r") as file:
         csv_reader = csv.reader(file)
         next(csv_reader)
         for row in csv_reader:
@@ -35,8 +38,9 @@ def read_predicates_from_csv(file_path):
             predicates.append(predicate)
     return predicates
 
+
 # Example usage
-file_path = 'predicates.csv'
+file_path = "predicates.csv"
 predicates = read_predicates_from_csv(file_path)
 print(predicates)
 
@@ -52,17 +56,19 @@ print(predicates)
 # )
 
 df = spark.read.jdbc(
-        url=database_url,
-        table="iasworld.asmt_all",
-        properties={"user": IPTS_USERNAME, "password": IPTS_PASSWORD, "fetchsize": "10000"},
-        predicates=predicates
-    )
+    url=database_url,
+    table="iasworld.asmt_all",
+    properties={
+        "user": IPTS_USERNAME,
+        "password": IPTS_PASSWORD,
+        "fetchsize": "10000",
+    },
+    predicates=predicates,
+)
 
-df.filter("taxyr == 2023") \
-    .write \
-    .option("compression", "zstd") \
-    .partitionBy("taxyr", "cur") \
-    .parquet("/tmp/target/test")
+df.filter("taxyr == 2023").write.option("compression", "zstd").partitionBy(
+    "taxyr", "cur"
+).parquet("/tmp/target/test")
 
 data = ds.dataset("/tmp/target/test", format="parquet", partitioning="hive")
 
@@ -73,6 +79,5 @@ ds.write_dataset(
     partitioning=["taxyr", "cur"],
     partitioning_flavor="hive",
     min_rows_per_group=25000,
-    max_rows_per_file=5*10**6
+    max_rows_per_file=5 * 10**6,
 )
-
