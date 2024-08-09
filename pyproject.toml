@@ -1,6 +1,17 @@
 [project]
 name = "service-spark-iasworld"
 version = "0.0.1"
+description = """
+Service for extracting tables from the CCAO system-of-record and
+uploading them to the Data Department's data warehouse
+"""
+keywords = ["spark", "data engineering", "local government"]
+authors = [
+  {name = "Dan Snow", email = "daniel.snow@cookcountyil.gov"}
+]
+license = {file = "LICENSE"}
+readme = "README.md"
+requires-python = ">=3.9"
 dependencies = [
   "py4j",
   "pyarrow"
