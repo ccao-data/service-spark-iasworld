@@ -9,6 +9,11 @@ load_dotenv()
 GH_APP_ID = os.getenv("GH_APP_ID")
 GH_PEM_PATH = os.getenv("GH_PEM_PATH")
 
+if not GH_APP_ID or not GH_PEM_PATH:
+    raise ValueError(
+        "GH_APP_ID and GH_PEM_PATH environment variables must be set"
+    )
+
 with open(GH_PEM_PATH, "rb") as pem_file:
     signing_key = jwt.jwk_from_pem(pem_file.read())
 
