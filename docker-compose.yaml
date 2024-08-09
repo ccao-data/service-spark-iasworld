@@ -1,7 +1,8 @@
-version: '3.9'
-
 x-default: &node
-  image: bitnami/spark:3.5.1
+  image: ${CCAO_REGISTRY_URL}/service-spark-iasworld:latest
+  build:
+    context: .
+    dockerfile: Dockerfile
   volumes:
     - ./drivers:/jdbc
     - ./scripts:/tmp/scripts
