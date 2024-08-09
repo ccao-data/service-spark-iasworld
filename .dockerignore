@@ -1,5 +1,4 @@
 .env
-.gitlab-ci.yml
 .dockerignore
 .git/
 drivers/
@@ -7,3 +6,4 @@ secrets/
 target/
 logs/
 backup/
+venv/

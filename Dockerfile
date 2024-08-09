@@ -3,6 +3,6 @@ SHELL ["/bin/bash", "-euo", "pipefail", "-c"]
 
 RUN mkdir -p /tmp/python
 COPY pyproject.toml /tmp/python
-WORKDIR /tmp/python
+RUN pip install --no-cache-dir /tmp/python/.
 
-RUN pip install .
+WORKDIR /tmp
