@@ -17,9 +17,10 @@ jobs:
 
       - name: Setup variables
         run: |
-          echo "IMAGE_TAG=$(if [ ${{ github.ref_name }} == master ]; then echo latest; elif [ ${{ github.event_name }} == release ]; then echo ${{ github.ref_name }}; else echo staging; fi)" >> $GITHUB_ENV
-          echo "SHA_SHORT=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
-          echo "PUSH_IMAGE=$(if [ ${{ github.event_name }} != pull_request ]; then echo true; else echo false; fi)" >> $GITHUB_ENV
+          # shellcheck disable=SC2129
+          echo "IMAGE_TAG=$(if [ ${{ github.ref_name }} == master ]; then echo latest; elif [ ${{ github.event_name }} == release ]; then echo ${{ github.ref_name }}; else echo staging; fi)" >> "$GITHUB_ENV"
+          echo "SHA_SHORT=$(git rev-parse --short HEAD)" >> "$GITHUB_ENV"
+          echo "PUSH_IMAGE=$(if [ ${{ github.event_name }} != pull_request ]; then echo true; else echo false; fi)" >> "$GITHUB_ENV"
 
       - name: Setup Docker Buildx
         uses: docker/setup-buildx-action@v3
