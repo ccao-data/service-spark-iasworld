@@ -27,7 +27,7 @@ jobs:
         uses: github/super-linter@v6
         env:
           VALIDATE_ALL_CODEBASE: false
-          DEFAULT_BRANCH: master
+          DEFAULT_BRANCH: main
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VALIDATE_MARKDOWN: false
           # These tools are handled by pre-commit, so we don't need SuperLinter
