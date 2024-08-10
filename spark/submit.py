@@ -3,7 +3,7 @@ from spark.job import SparkJob
 from spark.utils import read_predicates
 from pathlib import Path
 
-years = [x for x in range(2019, 2025)]
+years = [x for x in range(2022, 2024)]
 predicates = read_predicates(Path("/tmp/spark/predicates.csv"), years)
 session = SharedSparkSession(app_name="iasworld")
 

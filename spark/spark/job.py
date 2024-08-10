@@ -1,3 +1,4 @@
+import gc
 from pathlib import Path
 from pyarrow import dataset as ds
 from .session import SharedSparkSession
@@ -20,8 +21,16 @@ class SparkJob:
         self.taxyr = taxyr
         self.cur = cur
         self.predicates = predicates
-        self.initial_dir = initial_dir
-        self.final_dir = final_dir
+        self.initial_dir = (
+            (initial_dir / strip_table_prefix(self.table_name))
+            .resolve()
+            .as_posix()
+        )
+        self.final_dir = (
+            (final_dir / strip_table_prefix(self.table_name))
+            .resolve()
+            .as_posix()
+        )
 
         # Both of these must be set to avoid situations where we create
         # partitions by taxyr but not cur, and visa-versa
@@ -49,16 +58,6 @@ class SparkJob:
     def get_partition(self) -> list[str]:
         return ["taxyr", "cur"] if self.taxyr is not None else []
 
-    def get_target_path(self, type: str) -> str:
-        if type == "initial":
-            target_path = self.initial_dir
-        elif type == "final":
-            target_path = self.final_dir
-        else:
-            raise ValueError(f"Unknown target path type: {type}")
-        table_path = target_path / strip_table_prefix(self.table_name)
-        return table_path.resolve().as_posix()
-
     """
     Perform the initial file write to disk. This will be partitioned by the
     number of values passed via predicates (by default 96)
@@ -67,7 +66,6 @@ class SparkJob:
     def read(self) -> None:
         filter = self.get_filter()
         partitions = self.get_partition()
-        target_path = self.get_target_path(type="initial")
 
         # Must use the JDBC read method here since the normal spark.read()
         # doesn't accept predicates https://stackoverflow.com/a/48680140
@@ -87,8 +85,11 @@ class SparkJob:
             .write.mode("append")
             .option("compression", self.session.compression)
             .partitionBy(partitions)
-            .parquet(target_path)
+            .parquet(self.initial_dir)
         )
+
+        df.unpersist(blocking=True)
+        gc.collect()
 
     """
     Rewrite the read data from Spark into a single file per Hive
@@ -98,7 +99,7 @@ class SparkJob:
 
     def repartition(self) -> None:
         dataset = ds.dataset(
-            source=self.get_target_path(type="initial"),
+            source=self.initial_dir,
             format="parquet",
             partitioning="hive",
         )
@@ -109,7 +110,7 @@ class SparkJob:
         # to remove the old partitions when writing new ones
         ds.write_dataset(
             data=dataset,
-            base_dir=self.get_target_path(type="final"),
+            base_dir=self.final_dir,
             format="parquet",
             partitioning=self.get_partition(),
             partitioning_flavor="hive",
