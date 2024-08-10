@@ -1,4 +1,5 @@
 from pathlib import Path
+from pyarrow import dataset as ds
 from .session import SharedSparkSession
 
 
@@ -10,12 +11,16 @@ class SparkJob:
         taxyr: str | list[str] | None,
         cur: str | list[str] | None,
         predicates: list[str],
+        initial_dir: Path = Path("/tmp/target/initial"),
+        final_dir: Path = Path("/tmp/target/final"),
     ) -> None:
         self.session = session
         self.table_name = table_name
         self.taxyr = taxyr
         self.cur = cur
         self.predicates = predicates
+        self.initial_dir = initial_dir
+        self.final_dir = final_dir
 
         # Both of these must be set to avoid situations where we create
         # partitions by taxyr but not cur, and visa-versa
@@ -24,8 +29,13 @@ class SparkJob:
                 "Both 'taxyr' and 'cur' must be set if one is set."
             )
 
-    def get_target_path(self) -> str:
-        target_path = Path("/tmp/target")
+    def get_target_path(self, type: str) -> str:
+        if type == "initial":
+            target_path = self.initial_dir
+        elif type == "final":
+            target_path = self.final_dir
+        else:
+            raise ValueError(f"Unknown target path type: {type}")
         table_path = target_path / self.table_name
         table_path = table_path.resolve().as_posix()
         return table_path
@@ -40,10 +50,15 @@ class SparkJob:
     def get_partition(self) -> list[str]:
         return ["taxyr", "cur"] if self.taxyr is not None else []
 
-    def run(self) -> None:
+    """
+    Perform the initial file write to disk. This will be partitioned by the
+    number of values passed via predicates (by default 96)
+    """
+
+    def read(self) -> None:
         filter = self.get_filter()
         partitions = self.get_partition()
-        target_path = self.get_target_path()
+        target_path = self.get_target_path(type="initial")
 
         # Must use the JDBC read method here since the normal spark.read()
         # doesn't accept predicates https://stackoverflow.com/a/48680140
@@ -65,3 +80,35 @@ class SparkJob:
             .partitionBy(partitions)
             .parquet(target_path)
         )
+
+    """
+    Rewrite the read data from Spark into a single file per Hive
+    partition. It's MUCH faster to do this via pyarrow than via Spark
+    itself, even within the Spark job.
+    """
+
+    def repartition(self) -> None:
+        dataset = ds.dataset(
+            source=self.get_target_path(type="initial"),
+            format="parquet",
+            partitioning="hive",
+        )
+        file_options = ds.ParquetFileFormat().make_write_options(
+            compression="zstd"
+        )
+        # Very important to set the delete_matching option in order
+        # to remove the old partitions when writing new ones
+        ds.write_dataset(
+            data=dataset,
+            base_dir=self.get_target_path(type="final"),
+            format="parquet",
+            partitioning=["taxyr", "cur"],
+            partitioning_flavor="hive",
+            existing_data_behavior="delete_matching",
+            file_options=file_options,
+            max_rows_per_file=5 * 10**6,
+        )
+
+    def run(self) -> None:
+        self.read()
+        self.repartition()

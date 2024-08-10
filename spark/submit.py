@@ -18,10 +18,10 @@ def read_predicates_from_csv(path: Path) -> list[str]:
 
 predicates = read_predicates_from_csv(Path("/tmp/spark/predicates.csv"))
 
-spark = SharedSparkSession(app_name="iasworld")
+session = SharedSparkSession(app_name="iasworld")
 
 addn = SparkJob(
-    session=spark,
+    session=session,
     table_name="iasworld.addn",
     taxyr=["2019"],
     cur=["Y"],
@@ -32,7 +32,7 @@ addn = SparkJob(
 addn.run()
 
 addn_2020 = SparkJob(
-    session=spark,
+    session=session,
     table_name="iasworld.addn",
     taxyr=["2020"],
     cur=["Y"],
@@ -40,3 +40,5 @@ addn_2020 = SparkJob(
 )
 
 addn_2020.run()
+
+session.spark.stop()
