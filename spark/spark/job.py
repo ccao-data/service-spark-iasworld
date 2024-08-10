@@ -1,6 +1,7 @@
 from pathlib import Path
 from pyarrow import dataset as ds
 from .session import SharedSparkSession
+from .utils import strip_table_prefix
 
 
 class SparkJob:
@@ -8,7 +9,7 @@ class SparkJob:
         self,
         session: SharedSparkSession,
         table_name: str,
-        taxyr: str | list[str] | None,
+        taxyr: int | list[int] | None,
         cur: str | list[str] | None,
         predicates: list[str],
         initial_dir: Path = Path("/tmp/target/initial"),
@@ -29,6 +30,24 @@ class SparkJob:
                 "Both 'taxyr' and 'cur' must be set if one is set."
             )
 
+    def get_filter(self) -> str:
+        if self.taxyr is None:
+            return ""
+
+        if isinstance(self.taxyr, list):
+            filter = f"taxyr IN ({', '.join(map(str, self.taxyr))})"
+        else:
+            filter = f"taxyr = {self.taxyr}"
+
+        if isinstance(self.cur, list):
+            filter += f" AND cur IN ('{', '.join(self.cur)}')"
+        else:
+            filter += f" AND cur = '{self.cur}'"
+        return filter
+
+    def get_partition(self) -> list[str]:
+        return ["taxyr", "cur"] if self.taxyr is not None else []
+
     def get_target_path(self, type: str) -> str:
         if type == "initial":
             target_path = self.initial_dir
@@ -36,19 +55,9 @@ class SparkJob:
             target_path = self.final_dir
         else:
             raise ValueError(f"Unknown target path type: {type}")
-        table_path = target_path / self.table_name
+        table_path = target_path / strip_table_prefix(self.table_name)
         table_path = table_path.resolve().as_posix()
         return table_path
-
-    def get_filter(self) -> str:
-        if self.taxyr is None:
-            return ""
-        if isinstance(self.taxyr, list):
-            return f"taxyr IN ({', '.join(self.taxyr)})"
-        return f"taxyr = {self.taxyr}"
-
-    def get_partition(self) -> list[str]:
-        return ["taxyr", "cur"] if self.taxyr is not None else []
 
     """
     Perform the initial file write to disk. This will be partitioned by the

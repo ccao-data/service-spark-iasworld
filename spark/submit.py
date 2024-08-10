@@ -23,7 +23,7 @@ session = SharedSparkSession(app_name="iasworld")
 addn = SparkJob(
     session=session,
     table_name="iasworld.addn",
-    taxyr=["2019"],
+    taxyr=[2019],
     cur=["Y"],
     predicates=predicates,
 )
@@ -34,7 +34,7 @@ addn.run()
 addn_2020 = SparkJob(
     session=session,
     table_name="iasworld.addn",
-    taxyr=["2020"],
+    taxyr=[2020],
     cur=["Y"],
     predicates=predicates,
 )
