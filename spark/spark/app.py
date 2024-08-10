@@ -18,8 +18,8 @@ class SparkApp:
         self.cur = cur
         self.predicates = predicates
 
-        # Avoid situations where we create partitions by taxyr but not cur,
-        # and visa-versa
+        # Both of these must be set to avoid situations where we create
+        # partitions by taxyr but not cur, and visa-versa
         if (self.taxyr is None) != (self.cur is None):
             raise ValueError(
                 "Both 'taxyr' and 'cur' must be set if one is set."
@@ -77,6 +77,10 @@ class SparkApp:
         return ["taxyr", "cur"] if self.taxyr is not None else []
 
     def run(self) -> None:
+        filter = self.get_filter()
+        partitions = self.get_partition()
+        target_path = self.get_target_path()
+
         # Must use the JDBC read method here since the normal spark.read()
         # doesn't accept predicates https://stackoverflow.com/a/48680140
         df = self.spark.read.jdbc(
@@ -91,8 +95,8 @@ class SparkApp:
         )
 
         (
-            df.filter(self.get_filter())
+            df.filter(filter)
             .write.option("compression", self.compression)
-            .partitionBy(self.get_partition())
-            .parquet(self.get_target_path())
+            .partitionBy(partitions)
+            .parquet(target_path)
         )

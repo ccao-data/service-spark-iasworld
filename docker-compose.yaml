@@ -11,18 +11,6 @@ x-default: &node
     - IPTS_PASSWORD
   networks:
     - sparknet
-  environment:
-    - SPARK_PUBLIC_DNS=${SPARK_PUBLIC_IP}
-    - SPARK_RPC_AUTHENTICATION_ENABLED=no
-    - SPARK_RPC_ENCRYPTION_ENABLED=no
-    - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
-    - SPARK_SSL_ENABLED=no
-    - SPARK_USER=spark
-    - IPTS_HOSTNAME
-    - IPTS_PORT
-    - IPTS_SERVICE_NAME
-    - IPTS_USERNAME
-    - IPTS_TABLE
 
 services:
   spark-node-master:
@@ -31,6 +19,18 @@ services:
     hostname: spark-node-master
     environment:
       - SPARK_MODE=master
+
+      - SPARK_PUBLIC_DNS=${SPARK_PUBLIC_IP}
+      - SPARK_RPC_AUTHENTICATION_ENABLED=no
+      - SPARK_RPC_ENCRYPTION_ENABLED=no
+      - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
+      - SPARK_SSL_ENABLED=no
+      - SPARK_USER=spark
+      - IPTS_HOSTNAME
+      - IPTS_PORT
+      - IPTS_SERVICE_NAME
+      - IPTS_USERNAME
+      - IPTS_TABLE
     ports:
       - 4040:4040
       - 7077:7077
@@ -45,6 +45,18 @@ services:
       - SPARK_MASTER_URL=spark://spark-node-master:7077
       - SPARK_WORKER_MEMORY=96G
       - SPARK_WORKER_CORES=32
+
+      - SPARK_PUBLIC_DNS=${SPARK_PUBLIC_IP}
+      - SPARK_RPC_AUTHENTICATION_ENABLED=no
+      - SPARK_RPC_ENCRYPTION_ENABLED=no
+      - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
+      - SPARK_SSL_ENABLED=no
+      - SPARK_USER=spark
+      - IPTS_HOSTNAME
+      - IPTS_PORT
+      - IPTS_SERVICE_NAME
+      - IPTS_USERNAME
+      - IPTS_TABLE
     ports:
       - 8081:8081
 

@@ -1,4 +1,4 @@
-from .spark_app import SparkApp
+from spark.app import SparkApp
 from pathlib import Path
 import csv
 
@@ -19,8 +19,21 @@ predicates = read_predicates_from_csv(Path("/tmp/spark/predicates.csv"))
 
 addn = SparkApp(
     app_name="addn",
-    table_name="addn",
+    table_name="iasworld.addn",
     taxyr=["2019"],
     cur=["Y"],
     predicates=predicates,
 )
+
+
+addn.run()
+
+addn_2020 = SparkApp(
+    app_name="addn_2020",
+    table_name="iasworld.addn",
+    taxyr=["2020"],
+    cur=["Y"],
+    predicates=predicates,
+)
+
+addn_2020.run()
