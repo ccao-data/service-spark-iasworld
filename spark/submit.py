@@ -1,4 +1,5 @@
-from spark.app import SparkApp
+from spark.session import SharedSparkSession
+from spark.job import SparkJob
 from pathlib import Path
 import csv
 
@@ -17,8 +18,10 @@ def read_predicates_from_csv(path: Path) -> list[str]:
 
 predicates = read_predicates_from_csv(Path("/tmp/spark/predicates.csv"))
 
-addn = SparkApp(
-    app_name="addn",
+spark = SharedSparkSession(app_name="iasworld")
+
+addn = SparkJob(
+    session=spark,
     table_name="iasworld.addn",
     taxyr=["2019"],
     cur=["Y"],
@@ -28,8 +31,8 @@ addn = SparkApp(
 
 addn.run()
 
-addn_2020 = SparkApp(
-    app_name="addn_2020",
+addn_2020 = SparkJob(
+    session=spark,
     table_name="iasworld.addn",
     taxyr=["2020"],
     cur=["Y"],
