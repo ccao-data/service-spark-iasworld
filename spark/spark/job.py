@@ -40,7 +40,8 @@ class SparkJob:
             filter = f"taxyr = {self.taxyr}"
 
         if isinstance(self.cur, list):
-            filter += f" AND cur IN ('{', '.join(self.cur)}')"
+            quoted_cur = [f"'{x}'" for x in self.cur]
+            filter += f" AND cur IN ({', '.join(quoted_cur)})"
         else:
             filter += f" AND cur = '{self.cur}'"
         return filter
@@ -56,8 +57,7 @@ class SparkJob:
         else:
             raise ValueError(f"Unknown target path type: {type}")
         table_path = target_path / strip_table_prefix(self.table_name)
-        table_path = table_path.resolve().as_posix()
-        return table_path
+        return table_path.resolve().as_posix()
 
     """
     Perform the initial file write to disk. This will be partitioned by the
@@ -111,7 +111,7 @@ class SparkJob:
             data=dataset,
             base_dir=self.get_target_path(type="final"),
             format="parquet",
-            partitioning=["taxyr", "cur"],
+            partitioning=self.get_partition(),
             partitioning_flavor="hive",
             existing_data_behavior="delete_matching",
             file_options=file_options,
