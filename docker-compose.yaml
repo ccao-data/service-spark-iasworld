@@ -33,7 +33,6 @@ services:
       - IPTS_TABLE
     ports:
       - 4040:4040
-      - 7077:7077
       - 8080:8080
 
   spark-node-worker:
@@ -45,6 +44,7 @@ services:
       - SPARK_MASTER_URL=spark://spark-node-master:7077
       - SPARK_WORKER_MEMORY=96G
       - SPARK_WORKER_CORES=32
+      - SPARK_WORKER_WEBUI_PORT=9090
 
       - SPARK_PUBLIC_DNS=${SPARK_PUBLIC_IP}
       - SPARK_RPC_AUTHENTICATION_ENABLED=no
@@ -58,7 +58,7 @@ services:
       - IPTS_USERNAME
       - IPTS_TABLE
     ports:
-      - 8081:8081
+      - 9090:9090
 
 networks:
   sparknet:
