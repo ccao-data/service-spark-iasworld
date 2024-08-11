@@ -1,11 +1,11 @@
-from spark.session import SharedSparkSession
-from spark.job import SparkJob
-from spark.utils import read_predicates
+from utils.spark import SharedSparkSession, SparkJob
+from utils.helpers import read_predicates
 from pathlib import Path
 
 years = [x for x in range(2023, 2024)]
 predicates = read_predicates(Path("/tmp/spark/predicates.csv"))
 session = SharedSparkSession(app_name="iasworld")
+
 
 addn = SparkJob(
     session=session,
