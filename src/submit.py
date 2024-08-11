@@ -4,16 +4,16 @@ from datetime import datetime
 from utils.helpers import construct_predicates, read_predicates
 from utils.spark import SharedSparkSession, SparkJob
 
-# Default values for TAXYR and CUR. Only applied if at least one value in the
-# job definition is non-null, otherwise all values are set to None (used for
-# tables without a TAXYR and CUR columns)
+# Default values for JSON jobs. CUR and YEAR values are only applied if at
+# least one such value in the job definition is non-null, otherwise both CUR
+# and YEAR values are set to None (used to pull tables without TAXYR and CUR
+# columns. USE_PREDICATES should be disabled for any table without PARID
 DEFAULT_VAR_CUR = ["Y", "N", "D"]
 DEFAULT_VAR_MIN_YEAR = 1999
 DEFAULT_VAR_MAX_YEAR = datetime.now().year
 DEFAULT_VAR_USE_PREDICATES = True
 
 # Constants for paths WITHIN the Spark container
-PATH_DRIVER = "/jdbc/ojdbc8.jar"
 PATH_IPTS_PASSWORD = "/run/secrets/IPTS_PASSWORD"
 PATH_PREDICATES = "/tmp/src/predicates.csv"
 PATH_INITIAL_DIR = "/tmp/target/initial"
@@ -63,9 +63,7 @@ def main() -> str:
 
     session_name = f"iasworld_{current_datetime}"
     session = SharedSparkSession(
-        app_name=session_name,
-        password_file_path=PATH_IPTS_PASSWORD,
-        driver_file_path=PATH_DRIVER,
+        app_name=session_name, password_file_path=PATH_IPTS_PASSWORD
     )
 
     jobs = []

@@ -6,12 +6,9 @@ import os
 
 
 class SharedSparkSession:
-    def __init__(
-        self, app_name: str, password_file_path: str, driver_file_path: str
-    ) -> None:
+    def __init__(self, app_name: str, password_file_path: str) -> None:
         self.app_name = app_name
         self.password_file_path = password_file_path
-        self.driver_file_path = driver_file_path
 
         # Vars here are loaded from the .env file, then forwarded to the
         # container in docker-compose.yaml
@@ -30,22 +27,11 @@ class SharedSparkSession:
         with open(self.password_file_path, "r") as file:
             self.ipts_password = file.read().strip()
 
-        # Static arguments/params for the Spark connection. The driver path
-        # points to a mounted docker volume
+        # Static arguments/params applied to jobs using this session
         self.fetch_size = "10000"
         self.compression = "snappy"
 
-        self.spark = (
-            SparkSession.builder.appName(self.app_name)
-            .config("spark.jars", self.driver_file_path)
-            .config("spark.driver.extraClassPath", self.driver_file_path)
-            .config("spark.driver.extraClassPath", self.driver_file_path)
-            # Driver mem can be low as it's only used for the JDBC connection
-            .config("spark.driver.memory", "2g")
-            # Total mem available to the worker, across all jobs
-            .config("spark.executor.memory", "96g")
-            .getOrCreate()
-        )
+        self.spark = SparkSession.builder.appName(self.app_name).getOrCreate()
 
 
 class SparkJob:

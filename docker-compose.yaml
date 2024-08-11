@@ -4,8 +4,9 @@ x-default: &node
     context: .
     dockerfile: Dockerfile
   volumes:
-    - ./drivers:/jdbc
-    - ./src:/tmp/src
+    - ./drivers:/jdbc:ro
+    - ./src:/tmp/src:ro
+    - ./config/spark-defaults.conf:/opt/bitnami/spark/conf/spark-defaults.conf:ro
     - ./target:/tmp/target:rw
   secrets:
     - IPTS_PASSWORD
