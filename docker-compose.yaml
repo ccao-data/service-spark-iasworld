@@ -5,7 +5,7 @@ x-default: &node
     dockerfile: Dockerfile
   volumes:
     - ./drivers:/jdbc
-    - ./spark:/tmp/spark
+    - ./src:/tmp/src
     - ./target:/tmp/target:rw
   secrets:
     - IPTS_PASSWORD

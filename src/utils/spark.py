@@ -1,13 +1,17 @@
 from pathlib import Path
 from pyarrow import dataset as ds
 from pyspark.sql import SparkSession
-from .utils import strip_table_prefix
+from utils.helpers import strip_table_prefix
 import os
 
 
 class SharedSparkSession:
-    def __init__(self, app_name: str):
+    def __init__(
+        self, app_name: str, password_file_path: str, driver_file_path: str
+    ) -> None:
         self.app_name = app_name
+        self.password_file_path = password_file_path
+        self.driver_file_path = driver_file_path
 
         # Vars here are loaded from the .env file, then forwarded to the
         # container in docker-compose.yaml
@@ -23,20 +27,19 @@ class SharedSparkSession:
 
         # Load runtime secret using Compose secrets setup. The file address
         # doesn't change, so it's hardcoded here
-        with open("/run/secrets/IPTS_PASSWORD", "r") as file:
+        with open(self.password_file_path, "r") as file:
             self.ipts_password = file.read().strip()
 
         # Static arguments/params for the Spark connection. The driver path
         # points to a mounted docker volume
-        self.driver_path = "/jdbc/ojdbc8.jar"
         self.fetch_size = "10000"
         self.compression = "snappy"
 
         self.spark = (
             SparkSession.builder.appName(self.app_name)
-            .config("spark.jars", self.driver_path)
-            .config("spark.driver.extraClassPath", self.driver_path)
-            .config("spark.executor.extraClassPath", self.driver_path)
+            .config("spark.jars", self.driver_file_path)
+            .config("spark.driver.extraClassPath", self.driver_file_path)
+            .config("spark.driver.extraClassPath", self.driver_file_path)
             # Driver mem can be low as it's only used for the JDBC connection
             .config("spark.driver.memory", "2g")
             # Total mem available to the worker, across all jobs
@@ -53,8 +56,8 @@ class SparkJob:
         taxyr: int | list[int] | None,
         cur: str | list[str] | None,
         predicates: list[str],
-        initial_dir: Path = Path("/tmp/target/initial"),
-        final_dir: Path = Path("/tmp/target/final"),
+        initial_dir: str,
+        final_dir: str,
     ) -> None:
         self.session = session
         self.table_name = table_name
@@ -62,12 +65,12 @@ class SparkJob:
         self.cur = cur
         self.predicates = predicates
         self.initial_dir = (
-            (initial_dir / strip_table_prefix(self.table_name))
+            (Path(initial_dir) / strip_table_prefix(self.table_name))
             .resolve()
             .as_posix()
         )
         self.final_dir = (
-            (final_dir / strip_table_prefix(self.table_name))
+            (Path(final_dir) / strip_table_prefix(self.table_name))
             .resolve()
             .as_posix()
         )
@@ -122,8 +125,7 @@ class SparkJob:
 
         (
             df.filter(filter)
-            .repartition(1, "parid")
-            .write.mode("append")
+            .write.mode("overwrite")
             .option("compression", self.session.compression)
             .partitionBy(partitions)
             .parquet(self.initial_dir)
@@ -156,7 +158,3 @@ class SparkJob:
             file_options=file_options,
             max_rows_per_file=5 * 10**6,
         )
-
-    def run(self) -> None:
-        self.read()
-        # self.repartition()

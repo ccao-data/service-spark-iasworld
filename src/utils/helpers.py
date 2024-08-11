@@ -3,14 +3,9 @@ import csv
 import itertools
 
 
-def read_predicates(
-    path: Path, taxyr: int | list[int] | None = None
+def construct_predicates(
+    csv_lines: list[list[str]], taxyr: int | list[int] | None = None
 ) -> list[str]:
-    with open(path.resolve().as_posix(), mode="r") as file:
-        csv_reader = csv.reader(file)
-        next(csv_reader)
-        csv_lines = [row for row in csv_reader]
-
     taxyr_list = [taxyr] if isinstance(taxyr, int) else taxyr
     if taxyr_list:
         predicates = [
@@ -26,6 +21,16 @@ def read_predicates(
         ]
 
     return predicates
+
+
+def read_predicates(path: str) -> list[list[str]]:
+    pred_path = Path(path)
+    with open(pred_path.resolve().as_posix(), mode="r") as file:
+        csv_reader = csv.reader(file)
+        next(csv_reader)
+        csv_lines = [row for row in csv_reader]
+
+    return csv_lines
 
 
 def strip_table_prefix(table_name: str) -> str:

@@ -1,0 +1,14 @@
+{
+  "jobs": [
+    {
+      "table_name": "iasworld.addn",
+      "min_year": 2021
+    },
+    {
+      "table_name": "iasworld.dweldat",
+      "min_year": 2012,
+      "max_year": 2014,
+      "cur": ["Y"]
+    }
+  ]
+}
