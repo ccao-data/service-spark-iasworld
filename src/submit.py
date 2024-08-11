@@ -4,14 +4,14 @@ from datetime import datetime
 from utils.helpers import construct_predicates, read_predicates
 from utils.spark import SharedSparkSession, SparkJob
 
-# Default values for JSON jobs. CUR and YEAR values are only applied if at
-# least one such value in the job definition is non-null, otherwise both CUR
-# and YEAR values are set to None (used to pull tables without TAXYR and CUR
-# columns. USE_PREDICATES should be disabled for any table without PARID
+# Default values for JSON jobs. CUR and YEAR values are only use if
+# USE_PARTITIONS is True. USE_PREDICATES should be disabled for any table
+# without a PARID column
 DEFAULT_VAR_CUR = ["Y", "N", "D"]
 DEFAULT_VAR_MIN_YEAR = 1999
 DEFAULT_VAR_MAX_YEAR = datetime.now().year
 DEFAULT_VAR_USE_PREDICATES = True
+DEFAULT_VAR_USE_PARTITIONS = True
 
 # Constants for paths WITHIN the Spark container
 PATH_IPTS_PASSWORD = "/run/secrets/IPTS_PASSWORD"
@@ -68,17 +68,13 @@ def main() -> str:
 
     jobs = []
     for job in job_config["jobs"]:
-        min_year = job.get("min_year")
-        max_year = job.get("max_year")
-        cur = job.get("cur")
-
-        if min_year is None and max_year is None and cur is None:
-            years = None
-        else:
+        if job.get("use_partitions", DEFAULT_VAR_USE_PARTITIONS):
             min_year = job.get("min_year", DEFAULT_VAR_MIN_YEAR)
             max_year = job.get("max_year", DEFAULT_VAR_MAX_YEAR)
             cur = job.get("cur", DEFAULT_VAR_CUR)
             years = [x for x in range(min_year, max_year + 1)]
+        else:
+            years, cur = None, None
 
         if job.get("use_predicates", DEFAULT_VAR_USE_PREDICATES):
             predicates = construct_predicates(predicates_csv, years)

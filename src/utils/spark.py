@@ -111,7 +111,7 @@ class SparkJob:
             },
         )
 
-        # Only apply the filtering step if limiting values were actually passed
+        # Only apply the filtering step if limiting values are actually passed
         if filter:
             df = df.filter(filter)
 
