@@ -3,7 +3,9 @@ import csv
 import itertools
 
 
-def read_predicates(path: Path, taxyr: int | list[int] | None) -> list[str]:
+def read_predicates(
+    path: Path, taxyr: int | list[int] | None = None
+) -> list[str]:
     with open(path.resolve().as_posix(), mode="r") as file:
         csv_reader = csv.reader(file)
         next(csv_reader)

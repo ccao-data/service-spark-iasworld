@@ -1,4 +1,3 @@
-import gc
 from pathlib import Path
 from pyarrow import dataset as ds
 from .session import SharedSparkSession
@@ -82,14 +81,12 @@ class SparkJob:
 
         (
             df.filter(filter)
+            .repartition(1, "parid")
             .write.mode("append")
             .option("compression", self.session.compression)
             .partitionBy(partitions)
             .parquet(self.initial_dir)
         )
-
-        df.unpersist(blocking=True)
-        gc.collect()
 
     """
     Rewrite the read data from Spark into a single file per Hive
@@ -121,4 +118,4 @@ class SparkJob:
 
     def run(self) -> None:
         self.read()
-        self.repartition()
+        # self.repartition()
