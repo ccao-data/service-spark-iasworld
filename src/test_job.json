@@ -1,8 +1,13 @@
 {
   "jobs": [
     {
+      "table_name": "iasworld.aasysjur",
+      "use_predicates": false
+    },
+    {
       "table_name": "iasworld.addn",
-      "min_year": 2021
+      "min_year": 2021,
+      "max_year": 2021
     },
     {
       "table_name": "iasworld.dweldat",

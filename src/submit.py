@@ -4,6 +4,15 @@ from datetime import datetime
 from utils.helpers import construct_predicates, read_predicates
 from utils.spark import SharedSparkSession, SparkJob
 
+# Default values for TAXYR and CUR. Only applied if at least one value in the
+# job definition is non-null, otherwise all values are set to None (used for
+# tables without a TAXYR and CUR columns)
+DEFAULT_VAR_CUR = ["Y", "N", "D"]
+DEFAULT_VAR_MIN_YEAR = 1999
+DEFAULT_VAR_MAX_YEAR = datetime.now().year
+DEFAULT_VAR_USE_PREDICATES = True
+
+# Constants for paths WITHIN the Spark container
 PATH_DRIVER = "/jdbc/ojdbc8.jar"
 PATH_IPTS_PASSWORD = "/run/secrets/IPTS_PASSWORD"
 PATH_PREDICATES = "/tmp/src/predicates.csv"
@@ -18,11 +27,13 @@ def parse_args():
     parser.add_argument(
         "--json-file",
         type=str,
-        help="Path to the JSON file containing job configuration(s)",
+        nargs="?",
+        help="Path to a JSON file containing job configuration(s)",
     )
     parser.add_argument(
         "--json-string",
         type=str,
+        nargs="?",
         help="JSON string containing job configurations(s)",
     )
 
@@ -46,7 +57,6 @@ def main() -> str:
             "Either --json-file or --json-string must be provided"
         )
 
-    current_year = datetime.now().year
     current_datetime = datetime.now().strftime("%Y-%m-%d_%H:%M:%S")
 
     predicates_csv = read_predicates(PATH_PREDICATES)
@@ -60,20 +70,28 @@ def main() -> str:
 
     jobs = []
     for job in job_config["jobs"]:
-        min_year = job.get("min_year", 1999)
-        max_year = job.get("max_year", current_year)
-        if min_year is None and max_year is None:
+        min_year = job.get("min_year")
+        max_year = job.get("max_year")
+        cur = job.get("cur")
+
+        if min_year is None and max_year is None and cur is None:
             years = None
         else:
+            min_year = job.get("min_year", DEFAULT_VAR_MIN_YEAR)
+            max_year = job.get("max_year", DEFAULT_VAR_MAX_YEAR)
+            cur = job.get("cur", DEFAULT_VAR_CUR)
             years = [x for x in range(min_year, max_year + 1)]
 
-        predicates = construct_predicates(predicates_csv, years)
+        if job.get("use_predicates", DEFAULT_VAR_USE_PREDICATES):
+            predicates = construct_predicates(predicates_csv, years)
+        else:
+            predicates = None
 
         spark_job = SparkJob(
             session=session,
             table_name=job.get("table_name"),
             taxyr=years,
-            cur=job.get("cur", ["Y", "N", "D"]),
+            cur=cur,
             predicates=predicates,
             initial_dir=PATH_INITIAL_DIR,
             final_dir=PATH_FINAL_DIR,
@@ -83,6 +101,10 @@ def main() -> str:
         jobs.append(spark_job)
 
     session.spark.stop()
+
+    for job in jobs:
+        job.repartition()
+
     print(session_name)
 
     return session_name

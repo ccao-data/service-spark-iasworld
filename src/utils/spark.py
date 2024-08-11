@@ -55,7 +55,7 @@ class SparkJob:
         table_name: str,
         taxyr: int | list[int] | None,
         cur: str | list[str] | None,
-        predicates: list[str],
+        predicates: list[str] | None,
         initial_dir: str,
         final_dir: str,
     ) -> None:
@@ -79,12 +79,15 @@ class SparkJob:
         # partitions by taxyr but not cur, and visa-versa
         if (self.taxyr is None) != (self.cur is None):
             raise ValueError(
-                "Both 'taxyr' and 'cur' must be set if one is set."
+                (
+                    f"Error for table {self.table_name}: "
+                    "both 'taxyr' and 'cur' must be set if one is set."
+                )
             )
 
-    def get_filter(self) -> str:
+    def get_filter(self) -> str | None:
         if self.taxyr is None:
-            return ""
+            return None
 
         if isinstance(self.taxyr, list):
             filter = f"taxyr IN ({', '.join(map(str, self.taxyr))})"
@@ -123,9 +126,12 @@ class SparkJob:
             },
         )
 
+        # Only apply the filtering step if limiting values were actually passed
+        if filter:
+            df = df.filter(filter)
+
         (
-            df.filter(filter)
-            .write.mode("overwrite")
+            df.write.mode("overwrite")
             .option("compression", self.session.compression)
             .partitionBy(partitions)
             .parquet(self.initial_dir)
