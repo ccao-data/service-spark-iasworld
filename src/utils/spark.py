@@ -90,12 +90,11 @@ class SparkJob:
     def get_partition(self) -> list[str]:
         return ["taxyr", "cur"] if self.taxyr is not None else []
 
-    """
-    Perform the initial file write to disk. This will be partitioned by the
-    number of values passed via predicates (by default 96)
-    """
-
     def read(self) -> None:
+        """
+        Perform the initial file write to disk. This will be partitioned by the
+        number of values passed via predicates (by default 96)
+        """
         filter = self.get_filter()
         partitions = self.get_partition()
 
@@ -123,13 +122,12 @@ class SparkJob:
             .parquet(self.initial_dir)
         )
 
-    """
-    Rewrite the read data from Spark into a single file per Hive
-    partition. It's MUCH faster to do this via pyarrow than via Spark
-    itself, even within the Spark job.
-    """
-
     def repartition(self) -> None:
+        """
+        Rewrite the read data from Spark into a single file per Hive
+        partition. It's MUCH faster to do this via pyarrow than via Spark
+        itself, even within the Spark job.
+        """
         dataset = ds.dataset(
             source=self.initial_dir,
             format="parquet",
