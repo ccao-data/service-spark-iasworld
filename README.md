@@ -43,8 +43,8 @@ as a file. All jobs should have the following format:
 
 - `table_name (required)` - Name of the iasWorld table to extract, must be
   prefixed with `iasworld.`.
-- `min_year (optional)` - Minimum tax year to extract from the table.
-  Default is `1999`.
+- `min_year (optional)` - Minimum tax year (inclusive) to extract from the
+  table. Default is `1999`.
 - `max_year (optional)` - Maximum tax year (inclusive) to extract from the
   table. To extract a single year, set `min_year` and `max_year` to the same
   value. Default is the current year.
