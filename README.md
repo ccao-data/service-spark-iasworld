@@ -48,8 +48,8 @@ as a file. All jobs should have the following format:
 - `max_year (optional)` - Maximum tax year (inclusive) to extract from the
   table. To extract a single year, set `min_year` and `max_year` to the same
   value. Defaults to the current year.
-- `cur (optional)` - Values of the `cur` column to extract from the table. Can
-  by an array or a single value. Defaults to `["Y", "N", "D"]`.
+- `cur (optional)` - Values of the `cur` column to extract from the table.
+  Must be an array. Defaults to `["Y", "N", "D"]`.
 - `predicates_path (optional)` - String path to a CSV file within the
   `config/` directory. The CSV file should define the column, start value, and
   end value used to construct a SQL BETWEEN expression. Each line creates its

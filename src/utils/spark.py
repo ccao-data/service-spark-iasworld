@@ -73,7 +73,7 @@ class SparkJob:
         table_name: The name of the iasWorld table to read from. Should be
             predicated with 'iasworld.'.
         taxyr: The tax year(s) to filter and partition by.
-        cur: The cur values to filter and partition by.
+        cur: The cur value(s) to filter and partition by.
         predicates: A list of SQL predicates for chunking JDBC reads.
         initial_dir: The initial directory to write the data to, relative to
             the Docker container.
@@ -85,8 +85,8 @@ class SparkJob:
         self,
         session: SharedSparkSession,
         table_name: str,
-        taxyr: int | list[int] | None,
-        cur: str | list[str] | None,
+        taxyr: list[int] | None,
+        cur: list[str] | None,
         predicates: list[str] | None,
         initial_dir: str,
         final_dir: str,
@@ -112,20 +112,13 @@ class SparkJob:
         Translates the taxyr and cur values into SQL used to filter/limit the
         values read from the table.
         """
-        if self.taxyr is None:
-            return None
-
-        if isinstance(self.taxyr, list):
-            filter = f"taxyr IN ({', '.join(map(str, self.taxyr))})"
-        else:
-            filter = f"taxyr = {self.taxyr}"
-
-        if isinstance(self.cur, list):
+        filter = []
+        if self.taxyr:
+            filter.append(f"taxyr IN ({', '.join(map(str, self.taxyr))})")
+        if self.cur:
             quoted_cur = [f"'{x}'" for x in self.cur]
-            filter += f" AND cur IN ({', '.join(quoted_cur)})"
-        else:
-            filter += f" AND cur = '{self.cur}'"
-        return filter
+            filter.append(f"cur IN ({', '.join(quoted_cur)})")
+        return " AND ".join(filter) if filter else None
 
     def get_partitions(self) -> list[str]:
         """
