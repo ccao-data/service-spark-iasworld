@@ -4,8 +4,8 @@ from datetime import datetime
 from utils.helpers import construct_predicates, read_predicates
 from utils.spark import SharedSparkSession, SparkJob
 
-# Default values for JSON jobs. CUR and YEAR values are only use if
-# USE_PARTITIONS is True. USE_PREDICATES should be disabled for any table
+# Default values for jobs. CUR and YEAR values are only used if
+# USE_PARTITIONS is true. USE_PREDICATES should be disabled for any table
 # without a PARID column
 DEFAULT_VAR_CUR = ["Y", "N", "D"]
 DEFAULT_VAR_MIN_YEAR = 1999
@@ -45,7 +45,7 @@ def main() -> str:
 
     if args.json_file and args.json_string:
         raise ValueError(
-            "Only one argument: --json-file or --json-string can be provided"
+            "Only one argument: --yaml-file or --json-string can be provided"
         )
     elif args.json_file:
         with open(args.json_file, "r") as f:
@@ -67,23 +67,23 @@ def main() -> str:
     )
 
     jobs = []
-    for job in job_config["jobs"]:
-        if job.get("use_partitions", DEFAULT_VAR_USE_PARTITIONS):
-            min_year = job.get("min_year", DEFAULT_VAR_MIN_YEAR)
-            max_year = job.get("max_year", DEFAULT_VAR_MAX_YEAR)
-            cur = job.get("cur", DEFAULT_VAR_CUR)
+    for job_name, config in job_config.items():
+        if config.get("use_partitions", DEFAULT_VAR_USE_PARTITIONS):
+            min_year = config.get("min_year", DEFAULT_VAR_MIN_YEAR)
+            max_year = config.get("max_year", DEFAULT_VAR_MAX_YEAR)
+            cur = config.get("cur", DEFAULT_VAR_CUR)
             years = [x for x in range(min_year, max_year + 1)]
         else:
             years, cur = None, None
 
-        if job.get("use_predicates", DEFAULT_VAR_USE_PREDICATES):
+        if config.get("use_predicates", DEFAULT_VAR_USE_PREDICATES):
             predicates = construct_predicates(predicates_csv, years)
         else:
             predicates = None
 
         spark_job = SparkJob(
             session=session,
-            table_name=job.get("table_name"),
+            table_name=config.get("table_name"),
             taxyr=years,
             cur=cur,
             predicates=predicates,
@@ -96,8 +96,8 @@ def main() -> str:
 
     session.spark.stop()
 
-    for job in jobs:
-        job.repartition()
+    for config in jobs:
+        config.repartition()
 
     print(session_name)
 
