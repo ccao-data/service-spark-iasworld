@@ -30,7 +30,8 @@ as a file. All jobs should have the following format:
     "min_year": 2020,
     "max_year": 2024,
     "cur": ["Y", "D"],
-    "use_predicates": false,
+    "predicates_path": "default_predicates.csv",
+    "predicates_type": "string",
     "use_partitions": false
   },
   "job2": {
@@ -44,16 +45,22 @@ as a file. All jobs should have the following format:
 - `table_name (required)` - Name of the iasWorld table to extract, must be
   prefixed with `iasworld.`.
 - `min_year (optional)` - Minimum tax year (inclusive) to extract from the
-  table. Default is `1999`.
+  table. Defaults to `1999`.
 - `max_year (optional)` - Maximum tax year (inclusive) to extract from the
   table. To extract a single year, set `min_year` and `max_year` to the same
-  value. Default is the current year.
+  value. Defaults to the current year.
 - `cur (optional)` - Values of the `cur` column to extract from the table. Can
-  by an array or a single value. Default is `['Y', 'N', 'D']`.
-- `use_predicates (optional)` - Use the PIN ranges defined in
-  `config/default_predicates.csv` to divide up the table during extraction.
-  Greatly increases speed, but requires the table to have a `parid` column.
-  Default is `true`.
+  by an array or a single value. Defaults to `["Y", "N", "D"]`.
+- `predicates_path (optional)` - String path to a CSV file within the
+  `config/` directory. The CSV file should define the column, start value, and
+  end value used to construct a SQL BETWEEN expression. Each line creates its
+  own expression equivalent to one chunk of a table during reading. Set to
+  in a job definition `null` to disable using predicates completely. Defaults
+  to `default_predicates.csv`.
+- `predicates_type (optional)` - Data type of the predicate column, either
+  "string" or "numeric". The "string" type is quoted in the generated
+  SQL BETWEEN predicates, while the "numeric" type is not. Defaults
+  to `"string"`.
 - `use_partitions (optional)` - Create
   [Hive-partitioned](https://duckdb.org/docs/data/partitioning/hive_partitioning.html)
   outputs using the `taxyr` and `cur` column values. Default is `true`.

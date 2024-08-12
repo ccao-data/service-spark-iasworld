@@ -26,7 +26,7 @@ default_jobs:
     min_year: *min_year
   enter:
     table_name: iasworld.enter
-    use_predicates: false
+    predicates_path: null
     use_partitions: false
   htpar:
     table_name: iasworld.htpar
@@ -48,11 +48,10 @@ default_jobs:
     min_year: *min_year
   permit:
     table_name: iasworld.permit
-    use_predicates: false
+    predicates_path: null
     use_partitions: false
   sales:
     table_name: iasworld.sales
-    use_predicates: true
     use_partitions: false
   splcom:
     table_name: iasworld.splcom
@@ -62,7 +61,7 @@ default_jobs:
 weekend_jobs:
   aasysjur:
     table_name: iasworld.aasysjur
-    use_predicates: false
+    predicates_path: null
     use_partitions: false
   addn:
     table_name: iasworld.addn
@@ -76,13 +75,13 @@ weekend_jobs:
     table_name: iasworld.asmt_hist
   cname:
     table_name: iasworld.cname
-    use_predicates: false
+    predicates_path: null
     use_partitions: false
   comdat:
     table_name: iasworld.comdat
   comnt:
     table_name: iasworld.comnt
-    use_predicates: false
+    predicates_path: null
     use_partitions: false
   cvleg:
     table_name: iasworld.cvleg
@@ -92,13 +91,13 @@ weekend_jobs:
     table_name: iasworld.cvtran
   dedit:
     table_name: iasworld.dedit
-    use_predicates: false
+    predicates_path: null
     use_partitions: false
   dweldat:
     table_name: iasworld.dweldat
   enter:
     table_name: iasworld.enter
-    use_predicates: false
+    predicates_path: null
     use_partitions: false
   exadmn:
     table_name: iasworld.exadmn
@@ -110,7 +109,7 @@ weekend_jobs:
     table_name: iasworld.exdet
   htagnt:
     table_name: iasworld.htagnt
-    use_predicates: false
+    predicates_path: null
     use_partitions: false
   htdates:
     table_name: iasworld.htdates
@@ -122,11 +121,11 @@ weekend_jobs:
     table_name: iasworld.legdat
   lpmod:
     table_name: iasworld.lpmod
-    use_predicates: false
+    predicates_path: null
     use_partitions: false
   lpnbhd:
     table_name: iasworld.lpnbhd
-    use_predicates: false
+    predicates_path: null
     use_partitions: false
   oby:
     table_name: iasworld.oby
@@ -136,28 +135,27 @@ weekend_jobs:
     table_name: iasworld.pardat
   permit:
     table_name: iasworld.permit
-    use_predicates: false
+    predicates_path: null
     use_partitions: false
   rcoby:
     table_name: iasworld.rcoby
-    use_predicates: false
+    predicates_path: null
     use_partitions: false
   sales:
     table_name: iasworld.sales
-    use_predicates: true
     use_partitions: false
   splcom:
     table_name: iasworld.splcom
   valclass:
     table_name: iasworld.valclass
-    use_predicates: false
+    predicates_path: null
     use_partitions: false
 
 # Jobs with a good mix of situations used for testing
 test_jobs:
   aasysjur:
     table_name: iasworld.aasysjur
-    use_predicates: false
+    predicates_path: null
     use_partitions: false
   addn:
     table_name: iasworld.addn
@@ -172,9 +170,8 @@ test_jobs:
     cur: ["Y"]
   sales:
     table_name: iasworld.sales
-    use_predicates: true
     use_partitions: false
   valclass:
     table_name: iasworld.valclass
-    use_predicates: false
+    predicates_path: null
     use_partitions: false

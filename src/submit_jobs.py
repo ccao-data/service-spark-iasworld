@@ -1,26 +1,21 @@
 import argparse
 from datetime import datetime
 
-from utils.helpers import (
-    construct_predicates,
-    load_job_config,
-    read_predicates,
-)
+from utils.helpers import construct_predicates, load_job_config
 from utils.spark import SharedSparkSession, SparkJob
 
 # Default values for jobs, used per job if not explicitly set in the job's
 # input JSON. CUR and YEAR values are only used if use_partitions is true in
-# the job definition. use_predicates should be disabled for any table without
-# a PARID column
+# the job definition.
 DEFAULT_VAR_CUR = ["Y", "N", "D"]
 DEFAULT_VAR_MIN_YEAR = 1999
 DEFAULT_VAR_MAX_YEAR = datetime.now().year
-DEFAULT_VAR_USE_PREDICATES = True
+DEFAULT_VAR_PREDICATES_PATH = "default_predicates.csv"
+DEFAULT_VAR_PREDICATES_TYPE = "string"
 DEFAULT_VAR_USE_PARTITIONS = True
 
 # Constants for paths inside the Spark container
 PATH_IPTS_PASSWORD = "/run/secrets/IPTS_PASSWORD"
-PATH_PREDICATES = "/tmp/config/default_predicates.csv"
 PATH_INITIAL_DIR = "/tmp/target/initial"
 PATH_FINAL_DIR = "/tmp/target/final"
 
@@ -50,11 +45,6 @@ def main() -> str:
     args = parse_args()
     job_config = load_job_config(args)
 
-    # Predicates are used to slice up a table/job into discrete chunks to
-    # improve parallelization. In our case, we slice tables into equally-sized
-    # chunks by PARID (where available) since it is indexed (we get fast reads)
-    predicates_csv = read_predicates(PATH_PREDICATES)
-
     # Each session is shared across all read jobs and manages job order,
     # credentialing, retries, etc.
     current_datetime = datetime.now().strftime("%Y-%m-%d_%H:%M:%S")
@@ -79,8 +69,10 @@ def main() -> str:
         else:
             years, cur = None, None
 
-        if config.get("use_predicates", DEFAULT_VAR_USE_PREDICATES):
-            predicates = construct_predicates(predicates_csv, years)
+        if config.get("predicates_path", DEFAULT_VAR_PREDICATES_PATH):
+            predicates = construct_predicates(
+                DEFAULT_VAR_PREDICATES_PATH, DEFAULT_VAR_PREDICATES_TYPE
+            )
         else:
             predicates = None
 

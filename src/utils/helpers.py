@@ -1,60 +1,43 @@
 import csv
-import itertools
 import json
 from argparse import Namespace
 from pathlib import Path
 
 
-def construct_predicates(
-    csv_lines: list[list[str]], taxyr: int | list[int] | None = None
-) -> list[str]:
+def construct_predicates(pred_path: str, pred_type: str) -> list[str]:
     """
-    Constructs SQL predicates based on the provided CSV lines and tax year(s).
+    Constructs SQL BETWEEN predicates based on a provided CSV file.
 
     Args:
-        csv_lines: A list of start and end PARIDs used to divide a table. The
-            third value is the rough number of PARIDs in the batch.
-        taxyr: A single tax year, a list of tax years, or None. If provided,
-            will be appended to the PARID predicates. Defaults to None.
+        pred_path: String path to a CSV file within the `config/`
+            directory. The CSV file should define the column, start value, and
+            end value used to construct a SQL BETWEEN expression. Each line
+            creates its own expression equivalent to one chunk of the table
+            during reading.
+        pred_type: Data type of the predicate column, either "string" or
+           "numeric". The "string" type is quoted in the generated SQL BETWEEN,
+           while the "numeric" type is not.
 
     Returns:
-        A list of SQL predicate strings used to divide a table into chunks.
+        A list of SQL predicate strings used to divide a table into chunks
+        during JDBC read jobs.
     """
-    taxyr_list = [taxyr] if isinstance(taxyr, int) else taxyr
-    if taxyr_list:
-        predicates = [
-            f"parid >= '{start}' AND parid <= '{end}' AND taxyr = {year}"
-            for (start, end, _), year in itertools.product(
-                csv_lines, taxyr_list
-            )
-        ]
-    else:
-        predicates = [
-            f"parid >= '{start}' AND parid <= '{end}'"
-            for start, end, _ in csv_lines
-        ]
+    if pred_type not in {"string", "numeric"}:
+        raise ValueError("pred_type must be either 'string' or 'numeric'")
 
-    return predicates
-
-
-def read_predicates(path: str) -> list[list[str]]:
-    """
-    Read a CSV file containing PARID start and end boundaries.
-
-    Args:
-        path: String path to the CSV file, relative to the Docker container.
-
-    Returns:
-        A list of start and end PARIDs used to divide a table. The third value
-        is the rough number of PARIDs in the batch.
-    """
-    pred_path = Path(path)
-    with open(pred_path.resolve().as_posix(), mode="r") as file:
+    full_path = "/tmp/config" / Path(pred_path)
+    with open(full_path.resolve().as_posix(), mode="r") as file:
         csv_reader = csv.reader(file)
-        next(csv_reader)
+        next(csv_reader)  # Skip header row
         csv_lines = [row for row in csv_reader]
 
-    return csv_lines
+    q = "'" if pred_type == "string" else ""
+    predicates = [
+        f"({column} BETWEEN {q}{start}{q} AND {q}{end}{q})"
+        for (column, start, end) in csv_lines
+    ]
+
+    return predicates
 
 
 def strip_table_prefix(table_name: str) -> str:
