@@ -27,8 +27,10 @@ class SharedSparkSession:
         ipts_password: The password for the database, read from file.
         fetch_size: The fetch size for the database queries. This is a tuning
             parameter for query speed. ~10,000 seems to work best.
-        compression: The compression type for the initial files read via JDBC.
-            Defaults to snappy.
+        initial_compression: The compression type for the initial Parquet files
+            written via JDBC extract. Defaults to snappy.
+        final_compression: The compression type final repartitioned Parquet
+            files. Defaults to ztd.
         spark: The Spark session object.
     """
 
@@ -54,7 +56,8 @@ class SharedSparkSession:
 
         # Static arguments/params applied to jobs using this session
         self.fetch_size = "10000"
-        self.compression = "snappy"
+        self.initial_compression = "snappy"
+        self.final_compression = "zstd"
 
         self.spark = SparkSession.builder.appName(self.app_name).getOrCreate()
 
@@ -178,7 +181,7 @@ class SparkJob:
 
         (
             df.write.mode("overwrite")
-            .option("compression", self.session.compression)
+            .option("compression", self.session.initial_compression)
             .partitionBy(partitions)
             .parquet(self.initial_dir)
         )
@@ -204,7 +207,7 @@ class SparkJob:
             partitioning="hive",
         )
         file_options = ds.ParquetFileFormat().make_write_options(
-            compression="zstd"
+            compression=self.session.final_compression
         )
         # Very important to set the delete_matching option in order
         # to remove the old partitions when writing new ones
