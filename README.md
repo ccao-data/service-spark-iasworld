@@ -56,7 +56,7 @@ as a file. All jobs should have the following format:
   Default is `true`.
 - `use_partitions (optional)` - Create
   [Hive-partitioned](https://duckdb.org/docs/data/partitioning/hive_partitioning.html)
-  outputs using the `taxyr` and `cur` columns. Default is `true`.
+  outputs using the `taxyr` and `cur` column values. Default is `true`.
 
 Long-lived job definitions are stored as YAML in `config/default_jobs.yaml`,
 then converted to JSON for submission. See `run.sh` for an example of this
