@@ -75,7 +75,6 @@ class SparkJob:
         taxyr: The tax year(s) to filter and partition by.
         cur: The cur values to filter and partition by.
         predicates: A list of SQL predicates for chunking JDBC reads.
-        use_partitions: Whether to partition the output data by taxyr and cur.
         initial_dir: The initial directory to write the data to, relative to
             the Docker container.
         final_dir: The final directory to write the repartitioned data to,
@@ -89,7 +88,6 @@ class SparkJob:
         taxyr: int | list[int] | None,
         cur: str | list[str] | None,
         predicates: list[str] | None,
-        use_partitions: bool,
         initial_dir: str,
         final_dir: str,
     ) -> None:
@@ -98,7 +96,6 @@ class SparkJob:
         self.taxyr = taxyr
         self.cur = cur
         self.predicates = predicates
-        self.use_partitions = use_partitions
         self.initial_dir = (
             (Path(initial_dir) / strip_table_prefix(self.table_name))
             .resolve()
@@ -109,18 +106,6 @@ class SparkJob:
             .resolve()
             .as_posix()
         )
-
-        # Both of these must be set to avoid situations where we create
-        # partitions by taxyr but not cur, and visa-versa
-        if self.use_partitions and (
-            (self.taxyr is None) != (self.cur is None)
-        ):
-            raise ValueError(
-                (
-                    f"Error for table {self.table_name}: "
-                    "both 'taxyr' and 'cur' must be set if one is set."
-                )
-            )
 
     def get_filter(self) -> str | None:
         """
@@ -149,8 +134,15 @@ class SparkJob:
 
             /tmp/target/initial/addn/taxyr=2020/cur=Y/big_file_name1.parquet
             /tmp/target/initial/addn/taxyr=2021/cur=N/big_file_name1.parquet
+
+        Uses `taxyr` or `cur` if either is set, or both if both are set.
         """
-        return ["taxyr", "cur"] if self.use_partitions else []
+        partitions = []
+        if self.taxyr:
+            partitions.append("taxyr")
+        if self.cur:
+            partitions.append("cur")
+        return partitions
 
     def read(self) -> None:
         """

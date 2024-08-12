@@ -31,8 +31,7 @@ as a file. All jobs should have the following format:
     "max_year": 2024,
     "cur": ["Y", "D"],
     "predicates_path": "default_predicates.csv",
-    "predicates_type": "string",
-    "use_partitions": false
+    "predicates_type": "string"
   },
   "job2": {
     ...
@@ -61,9 +60,6 @@ as a file. All jobs should have the following format:
   "string" or "numeric". The "string" type is quoted in the generated
   SQL BETWEEN predicates, while the "numeric" type is not. Defaults
   to `"string"`.
-- `use_partitions (optional)` - Create
-  [Hive-partitioned](https://duckdb.org/docs/data/partitioning/hive_partitioning.html)
-  outputs using the `taxyr` and `cur` column values. Default is `true`.
 
 Long-lived job definitions are stored as YAML in `config/default_jobs.yaml`,
 then converted to JSON for submission. See `run.sh` for an example of this

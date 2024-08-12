@@ -5,14 +5,13 @@ from utils.helpers import construct_predicates, load_job_config
 from utils.spark import SharedSparkSession, SparkJob
 
 # Default values for jobs, used per job if not explicitly set in the job's
-# input JSON. CUR and YEAR values are only used if use_partitions is true in
-# the job definition.
+# input JSON. CUR and YEAR values are always used for partitioning if they
+# are set
 DEFAULT_VAR_CUR = ["Y", "N", "D"]
 DEFAULT_VAR_MIN_YEAR = 1999
 DEFAULT_VAR_MAX_YEAR = datetime.now().year
 DEFAULT_VAR_PREDICATES_PATH = "default_predicates.csv"
 DEFAULT_VAR_PREDICATES_TYPE = "string"
-DEFAULT_VAR_USE_PARTITIONS = True
 
 # Constants for paths inside the Spark container
 PATH_IPTS_PASSWORD = "/run/secrets/IPTS_PASSWORD"
@@ -58,23 +57,23 @@ def main() -> str:
     # Finally, append the job to a list so we can use it later
     jobs = []
     for job_name, config in job_config.items():
-        use_partitions = config.get(
-            "use_partitions", DEFAULT_VAR_USE_PARTITIONS
+        cur = config.get("cur", DEFAULT_VAR_CUR)
+        min_year = config.get("min_year", DEFAULT_VAR_MIN_YEAR)
+        max_year = config.get("max_year", DEFAULT_VAR_MAX_YEAR)
+        years = (
+            [x for x in range(min_year, max_year + 1)]
+            if min_year and max_year
+            else None
         )
-        if use_partitions:
-            min_year = config.get("min_year", DEFAULT_VAR_MIN_YEAR)
-            max_year = config.get("max_year", DEFAULT_VAR_MAX_YEAR)
-            cur = config.get("cur", DEFAULT_VAR_CUR)
-            years = [x for x in range(min_year, max_year + 1)]
-        else:
-            years, cur = None, None
 
-        if config.get("predicates_path", DEFAULT_VAR_PREDICATES_PATH):
-            predicates = construct_predicates(
-                DEFAULT_VAR_PREDICATES_PATH, DEFAULT_VAR_PREDICATES_TYPE
-            )
-        else:
-            predicates = None
+        predicates_path = config.get(
+            "predicates_path", DEFAULT_VAR_PREDICATES_PATH
+        )
+        predicates = (
+            construct_predicates(predicates_path, DEFAULT_VAR_PREDICATES_TYPE)
+            if predicates_path
+            else None
+        )
 
         spark_job = SparkJob(
             session=session,
@@ -82,7 +81,6 @@ def main() -> str:
             taxyr=years,
             cur=cur,
             predicates=predicates,
-            use_partitions=use_partitions,
             initial_dir=PATH_INITIAL_DIR,
             final_dir=PATH_FINAL_DIR,
         )
