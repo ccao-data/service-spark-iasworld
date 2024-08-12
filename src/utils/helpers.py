@@ -13,9 +13,9 @@ def construct_predicates(
 
     Args:
         csv_lines: A list of start and end PARIDs used to divide a table. The
-                   third value is the rough number of PARIDs in the batch.
+            third value is the rough number of PARIDs in the batch.
         taxyr: A single tax year, a list of tax years, or None. If provided,
-               will be appended to the PARID predicates. Defaults to None.
+            will be appended to the PARID predicates. Defaults to None.
 
     Returns:
         A list of SQL predicate strings used to divide a table into chunks.
@@ -70,11 +70,11 @@ def load_job_config(args: Namespace) -> dict:
 
     Args:
         args: Namespace object containing the CLI arguments. It should have
-              either `json_file` or `json_string` value, but not both.
+            either `json_file` or `json_string` value, but not both.
 
     Raises:
         ValueError: If both `json_file` and `json_string` are provided, or if
-                    neither is provided.
+            neither is provided.
 
     Returns:
         dict: The job configuration(s) loaded from the JSON file or string.

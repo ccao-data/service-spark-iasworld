@@ -15,20 +15,20 @@ class SharedSparkSession:
 
     Attributes:
         app_name: The name of the Spark application. Used in the UI and can
-                  be referenced to poll session status.
+            be referenced to poll session status.
         password_file_path: The path to the file containing the password. This
-                            is passed via Compose secrets.
+            is passed via Compose secrets.
         ipts_hostname: The hostname for the iasWorld database.
         ipts_port: The port for the iasWorld database.
         ipts_service_name: The service name for the iasWorld database.
         ipts_username: The username for the iasWorld database.
         database_url: The JDBC URL for the database connection. Constructed
-                      from the above attributes.
+            from the above attributes.
         ipts_password: The password for the database, read from file.
         fetch_size: The fetch size for the database queries. This is a tuning
-                    parameter for query speed. ~10,000 seems to work best.
+            parameter for query speed. ~10,000 seems to work best.
         compression: The compression type for the initial files read via JDBC.
-                     Defaults to snappy.
+            Defaults to snappy.
         spark: The Spark session object.
     """
 
@@ -66,17 +66,17 @@ class SparkJob:
 
     Attributes:
         session: The shared Spark session containing the Spark connection and
-                 database credentials.
+            database credentials.
         table_name: The name of the iasWorld table to read from. Should be
-                    predicated with 'iasworld.'.
+            predicated with 'iasworld.'.
         taxyr: The tax year(s) to filter and partition by.
         cur: The cur values to filter and partition by.
         predicates: A list of SQL predicates for chunking JDBC reads.
         use_partitions: Whether to partition the output data by taxyr and cur.
         initial_dir: The initial directory to write the data to, relative to
-                     the Docker container.
+            the Docker container.
         final_dir: The final directory to write the repartitioned data to,
-                   relative to the Docker container.
+            relative to the Docker container.
     """
 
     def __init__(
@@ -143,6 +143,7 @@ class SparkJob:
         """
         Partition values used for Hive-style partitions e.g. the outputs from
         read() will look something like:
+
             /tmp/target/initial/addn/taxyr=2020/cur=Y/big_file_name1.parquet
             /tmp/target/initial/addn/taxyr=2021/cur=N/big_file_name1.parquet
         """
@@ -188,6 +189,7 @@ class SparkJob:
         method uses pyarrow to repartition the data into a single file per
         Hive partition. We could do this with Spark but it's much slower. The
         goal is to go from this:
+
             [52K] /tmp/target/initial/addn/taxyr=2020/cur=Y/file1.parquet
             [56K] /tmp/target/initial/addn/taxyr=2020/cur=Y/file2.parquet
             [58K] /tmp/target/initial/addn/taxyr=2020/cur=Y/file3.parquet
