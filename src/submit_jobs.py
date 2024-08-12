@@ -1,7 +1,11 @@
 import argparse
-import json
 from datetime import datetime
-from utils.helpers import construct_predicates, read_predicates
+
+from utils.helpers import (
+    construct_predicates,
+    load_job_config,
+    read_predicates,
+)
 from utils.spark import SharedSparkSession, SparkJob
 
 # Default values for jobs, used per job if not explicitly set in the job's
@@ -42,34 +46,32 @@ def parse_args():
 
 
 def main() -> str:
+    # Get the job definition(s) from the argument JSON
     args = parse_args()
+    job_config = load_job_config(args)
 
-    if args.json_file and args.json_string:
-        raise ValueError(
-            "Only one argument: --yaml-file or --json-string can be provided"
-        )
-    elif args.json_file:
-        with open(args.json_file, "r") as f:
-            job_config = json.load(f)
-    elif args.json_string:
-        job_config = json.loads(args.json_string)
-    else:
-        raise ValueError(
-            "Either --json-file or --json-string must be provided"
-        )
-
-    current_datetime = datetime.now().strftime("%Y-%m-%d_%H:%M:%S")
-
+    # Predicates are used to slice up a table/job into discrete chunks to
+    # improve parallelization. In our case, we slice tables into equally-sized
+    # chunks by PARID (where available) since it is indexed (we get fast reads)
     predicates_csv = read_predicates(PATH_PREDICATES)
 
+    # Each session is shared across all read jobs and manages job order,
+    # credentialing, retries, etc.
+    current_datetime = datetime.now().strftime("%Y-%m-%d_%H:%M:%S")
     session_name = f"iasworld_{current_datetime}"
     session = SharedSparkSession(
         app_name=session_name, password_file_path=PATH_IPTS_PASSWORD
     )
 
+    # For each Spark job, get the table structure based on the job definition
+    # or defaults. Then, perform the JDBC read of the job to extract data.
+    # Finally, append the job to a list so we can use it later
     jobs = []
     for job_name, config in job_config.items():
-        if config.get("use_partitions", DEFAULT_VAR_USE_PARTITIONS):
+        use_partitions = config.get(
+            "use_partitions", DEFAULT_VAR_USE_PARTITIONS
+        )
+        if use_partitions:
             min_year = config.get("min_year", DEFAULT_VAR_MIN_YEAR)
             max_year = config.get("max_year", DEFAULT_VAR_MAX_YEAR)
             cur = config.get("cur", DEFAULT_VAR_CUR)
@@ -88,15 +90,22 @@ def main() -> str:
             taxyr=years,
             cur=cur,
             predicates=predicates,
+            use_partitions=use_partitions,
             initial_dir=PATH_INITIAL_DIR,
             final_dir=PATH_FINAL_DIR,
         )
 
+        # Run the Spark read job. Each job will create n_predicates X n_years
+        # files in the target/initial/ dir, assuming predicates are enabled
         spark_job.read()
         jobs.append(spark_job)
 
+    # Stop the Spark session once all JDBC reads are complete. This is CRITICAL
+    # as it frees all memory from the cluster for use in the repartition step
     session.spark.stop()
 
+    # Use pyarrow to condense the many small Parquet files created by the reads
+    # into single files per Hive partition
     for config in jobs:
         config.repartition()
 

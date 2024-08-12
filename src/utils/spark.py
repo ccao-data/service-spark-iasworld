@@ -1,11 +1,37 @@
+import os
 from pathlib import Path
+
 from pyarrow import dataset as ds
 from pyspark.sql import SparkSession
+
 from utils.helpers import strip_table_prefix
-import os
 
 
 class SharedSparkSession:
+    """
+    Class to manage a shared Spark session connected to iasWorld via JDBC.
+    Contains all the credentials and settings needed to run each Spark job.
+    Only one of these should be created per batch of jobs.
+
+    Attributes:
+        app_name: The name of the Spark application. Used in the UI and can
+                  be referenced to poll session status.
+        password_file_path: The path to the file containing the password. This
+                            is passed via Compose secrets.
+        ipts_hostname: The hostname for the iasWorld database.
+        ipts_port: The port for the iasWorld database.
+        ipts_service_name: The service name for the iasWorld database.
+        ipts_username: The username for the iasWorld database.
+        database_url: The JDBC URL for the database connection. Constructed
+                      from the above attributes.
+        ipts_password: The password for the database, read from file.
+        fetch_size: The fetch size for the database queries. This is a tuning
+                    parameter for query speed. ~10,000 seems to work best.
+        compression: The compression type for the initial files read via JDBC.
+                     Defaults to snappy.
+        spark: The Spark session object.
+    """
+
     def __init__(self, app_name: str, password_file_path: str) -> None:
         self.app_name = app_name
         self.password_file_path = password_file_path
@@ -22,8 +48,7 @@ class SharedSparkSession:
             f"{self.ipts_service_name}"
         )
 
-        # Load runtime secret using Compose secrets setup. The file address
-        # doesn't change, so it's hardcoded here
+        # Load runtime secret using Compose secrets setup
         with open(self.password_file_path, "r") as file:
             self.ipts_password = file.read().strip()
 
@@ -35,6 +60,25 @@ class SharedSparkSession:
 
 
 class SparkJob:
+    """
+    Class to manage Spark jobs for reading, repartitioning, and uploading data.
+    Each job corresponds to a single iasWorld table.
+
+    Attributes:
+        session: The shared Spark session containing the Spark connection and
+                 database credentials.
+        table_name: The name of the iasWorld table to read from. Should be
+                    predicated with 'iasworld.'.
+        taxyr: The tax year(s) to filter and partition by.
+        cur: The cur values to filter and partition by.
+        predicates: A list of SQL predicates for chunking JDBC reads.
+        use_partitions: Whether to partition the output data by taxyr and cur.
+        initial_dir: The initial directory to write the data to, relative to
+                     the Docker container.
+        final_dir: The final directory to write the repartitioned data to,
+                   relative to the Docker container.
+    """
+
     def __init__(
         self,
         session: SharedSparkSession,
@@ -42,6 +86,7 @@ class SparkJob:
         taxyr: int | list[int] | None,
         cur: str | list[str] | None,
         predicates: list[str] | None,
+        use_partitions: bool,
         initial_dir: str,
         final_dir: str,
     ) -> None:
@@ -50,6 +95,7 @@ class SparkJob:
         self.taxyr = taxyr
         self.cur = cur
         self.predicates = predicates
+        self.use_partitions = use_partitions
         self.initial_dir = (
             (Path(initial_dir) / strip_table_prefix(self.table_name))
             .resolve()
@@ -63,7 +109,9 @@ class SparkJob:
 
         # Both of these must be set to avoid situations where we create
         # partitions by taxyr but not cur, and visa-versa
-        if (self.taxyr is None) != (self.cur is None):
+        if self.use_partitions and (
+            (self.taxyr is None) != (self.cur is None)
+        ):
             raise ValueError(
                 (
                     f"Error for table {self.table_name}: "
@@ -72,6 +120,10 @@ class SparkJob:
             )
 
     def get_filter(self) -> str | None:
+        """
+        Translates the taxyr and cur values into SQL used to filter/limit the
+        values read from the table.
+        """
         if self.taxyr is None:
             return None
 
@@ -88,12 +140,19 @@ class SparkJob:
         return filter
 
     def get_partition(self) -> list[str]:
-        return ["taxyr", "cur"] if self.taxyr is not None else []
+        """
+        Partition values used for Hive-style partitions e.g. the outputs from
+        read() will look something like:
+            /tmp/target/initial/addn/taxyr=2020/cur=Y/big_file_name1.parquet
+            /tmp/target/initial/addn/taxyr=2021/cur=N/big_file_name1.parquet
+        """
+        return ["taxyr", "cur"] if self.use_partitions else []
 
     def read(self) -> None:
         """
-        Perform the initial file write to disk. This will be partitioned by the
-        number of values passed via predicates (by default 96)
+        Perform the JDBC read and the initial file write to disk. Files will be
+        partitioned by the number of values passed via predicates (by default
+        96 per taxyr).
         """
         filter = self.get_filter()
         partitions = self.get_partition()
@@ -112,6 +171,7 @@ class SparkJob:
         )
 
         # Only apply the filtering step if limiting values are actually passed
+        # because it errors with an empty string or None value
         if filter:
             df = df.filter(filter)
 
@@ -124,9 +184,17 @@ class SparkJob:
 
     def repartition(self) -> None:
         """
-        Rewrite the read data from Spark into a single file per Hive
-        partition. It's MUCH faster to do this via pyarrow than via Spark
-        itself, even within the Spark job.
+        After the initial read, there will be many small Parquet files. This
+        method uses pyarrow to repartition the data into a single file per
+        Hive partition. We could do this with Spark but it's much slower. The
+        goal is to go from this:
+            [52K] /tmp/target/initial/addn/taxyr=2020/cur=Y/file1.parquet
+            [56K] /tmp/target/initial/addn/taxyr=2020/cur=Y/file2.parquet
+            [58K] /tmp/target/initial/addn/taxyr=2020/cur=Y/file3.parquet
+
+        To this:
+
+            [140K] /tmp/target/final/addn/taxyr=2020/cur=Y/part-0.zstd.parquet
         """
         dataset = ds.dataset(
             source=self.initial_dir,
