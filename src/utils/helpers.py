@@ -47,9 +47,9 @@ def strip_table_prefix(table_name: str) -> str:
     return table_name
 
 
-def load_job_config(args: Namespace) -> dict:
+def load_job_definitions(args: Namespace) -> dict:
     """
-    Loads job configuration(s) from a JSON file or a JSON string.
+    Loads job definition(s) from a JSON file or a JSON string.
 
     Args:
         args: Namespace object containing the CLI arguments. It should have
@@ -60,7 +60,7 @@ def load_job_config(args: Namespace) -> dict:
             neither is provided.
 
     Returns:
-        dict: The job configuration(s) loaded from the JSON file or string.
+        dict: The job definition(s) loaded from the JSON file or string.
     """
     if args.json_file and args.json_string:
         raise ValueError(
@@ -68,11 +68,11 @@ def load_job_config(args: Namespace) -> dict:
         )
     elif args.json_file:
         with open(args.json_file, "r") as f:
-            job_config = json.load(f)
+            job_dict = json.load(f)
     elif args.json_string:
-        job_config = json.loads(args.json_string)
+        job_dict = json.loads(args.json_string)
     else:
         raise ValueError(
             "Either --json-file or --json-string must be provided"
         )
-    return job_config
+    return job_dict

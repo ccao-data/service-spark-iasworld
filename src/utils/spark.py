@@ -127,7 +127,7 @@ class SparkJob:
             filter += f" AND cur = '{self.cur}'"
         return filter
 
-    def get_partition(self) -> list[str]:
+    def get_partitions(self) -> list[str]:
         """
         Partition values used for Hive-style partitions e.g. the outputs from
         read() will look something like:
@@ -151,7 +151,7 @@ class SparkJob:
         96 per taxyr).
         """
         filter = self.get_filter()
-        partitions = self.get_partition()
+        partitions = self.get_partitions()
 
         # Must use the JDBC read method here since the normal spark.read()
         # doesn't accept predicates https://stackoverflow.com/a/48680140
@@ -207,7 +207,7 @@ class SparkJob:
             data=dataset,
             base_dir=self.final_dir,
             format="parquet",
-            partitioning=self.get_partition(),
+            partitioning=self.get_partitions(),
             partitioning_flavor="hive",
             existing_data_behavior="delete_matching",
             file_options=file_options,

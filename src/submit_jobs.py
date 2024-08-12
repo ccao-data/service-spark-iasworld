@@ -1,7 +1,7 @@
 import argparse
 from datetime import datetime
 
-from utils.helpers import construct_predicates, load_job_config
+from utils.helpers import construct_predicates, load_job_definitions
 from utils.spark import SharedSparkSession, SparkJob
 
 # Default values for jobs, used per job if not explicitly set in the job's
@@ -42,7 +42,7 @@ def parse_args():
 def main() -> str:
     # Get the job definition(s) from the argument JSON
     args = parse_args()
-    job_config = load_job_config(args)
+    job_definitions = load_job_definitions(args)
 
     # Each session is shared across all read jobs and manages job order,
     # credentialing, retries, etc.
@@ -56,17 +56,17 @@ def main() -> str:
     # or defaults. Then, perform the JDBC read of the job to extract data.
     # Finally, append the job to a list so we can use it later
     jobs = []
-    for job_name, config in job_config.items():
-        cur = config.get("cur", DEFAULT_VAR_CUR)
-        min_year = config.get("min_year", DEFAULT_VAR_MIN_YEAR)
-        max_year = config.get("max_year", DEFAULT_VAR_MAX_YEAR)
+    for job_name, job_definition in job_definitions.items():
+        cur = job_definition.get("cur", DEFAULT_VAR_CUR)
+        min_year = job_definition.get("min_year", DEFAULT_VAR_MIN_YEAR)
+        max_year = job_definition.get("max_year", DEFAULT_VAR_MAX_YEAR)
         years = (
             [x for x in range(min_year, max_year + 1)]
             if min_year and max_year
             else None
         )
 
-        predicates_path = config.get(
+        predicates_path = job_definition.get(
             "predicates_path", DEFAULT_VAR_PREDICATES_PATH
         )
         predicates = (
@@ -77,7 +77,7 @@ def main() -> str:
 
         spark_job = SparkJob(
             session=session,
-            table_name=config.get("table_name"),
+            table_name=job_definition.get("table_name"),
             taxyr=years,
             cur=cur,
             predicates=predicates,
@@ -85,7 +85,7 @@ def main() -> str:
             final_dir=PATH_FINAL_DIR,
         )
 
-        # Run the Spark read job. Each job will create n_predicates X n_years
+        # Run the Spark read job. Each job will create N predicates
         # files in the target/initial/ dir, assuming predicates are enabled
         spark_job.read()
         jobs.append(spark_job)
@@ -96,8 +96,8 @@ def main() -> str:
 
     # Use pyarrow to condense the many small Parquet files created by the reads
     # into single files per Hive partition
-    for config in jobs:
-        config.repartition()
+    for job in jobs:
+        job.repartition()
 
     return session_name
 
