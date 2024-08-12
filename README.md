@@ -1,7 +1,7 @@
 # Spark Extractor for iasWorld
 
 This repository contains the dependencies and code necessary to run
-[`Spark`](https://spark.apache.org/docs/latest/) extract jobs targeting the
+[Spark](https://spark.apache.org/docs/latest/) extract jobs targeting the
 CCAO's iasWorld system-of-record. It is a replacement for
 [`service-sqoop-iasworld`](https://github.com/ccao-data/service-sqoop-iasworld),
 which is now deprecated.
@@ -17,7 +17,8 @@ giving us a 1-1 mirror of the system-of-record for analytical queries.
 
 > [!NOTE]
 > Before attempting to submit jobs to the cluster, first make sure the Spark
-> compose stack is active by running `docker compose up -d` in the repository.
+> Docker Compose stack is active by running `docker compose up -d` in the
+> repository.
 
 `service-spark-iasworld` jobs are submitted via JSON, either as a string or
 as a file. All jobs should have the following format:
@@ -45,8 +46,8 @@ as a file. All jobs should have the following format:
 - `min_year (optional)` - Minimum tax year to extract from the table.
   Default is `1999`.
 - `max_year (optional)` - Maximum tax year (inclusive) to extract from the
-  table. Default is the current year. To extract a single year, set `min_year`
-  and `max_year` to the same value.
+  table. To extract a single year, set `min_year` and `max_year` to the same
+  value. Default is the current year.
 - `cur (optional)` - Values of the `cur` column to extract from the table. Can
   by an array or a single value. Default is `['Y', 'N', 'D']`.
 - `use_predicates (optional)` - Use the PIN ranges defined in
@@ -55,7 +56,7 @@ as a file. All jobs should have the following format:
   Default is `true`.
 - `use_partitions (optional)` - Create
   [Hive-partitioned](https://duckdb.org/docs/data/partitioning/hive_partitioning.html)
-  outputs using the values of `taxyr` and `cur`. Default is `true`.
+  outputs using the `taxyr` and `cur` columns. Default is `true`.
 
 Long-lived job definitions are stored as YAML in `config/default_jobs.yaml`,
 then converted to JSON for submission. See `run.sh` for an example of this
@@ -67,7 +68,7 @@ Here's a breakdown of important files and the purpose of each one:
 
 ```tree
 .
-├── docker-compose.yaml        - Defines the Spark nodes, their environment, and networking
+├── docker-compose.yaml        - Defines the Spark nodes, environment, and networking
 ├── Dockerfile                 - Defines dependencies bundled in each Spark node
 ├── .env                       - Runtime configuration variables passed to containers
 ├── pyproject.toml             - Project metadata and tool settings
