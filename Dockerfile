@@ -18,4 +18,4 @@ RUN pip install --no-cache-dir /tmp/python/.
 # User corresponds to dedicated shiny-server user on server. Necessary for
 # proper write permissions to target directories
 USER 1003:0
-WORKDIR /tmp
+WORKDIR /tmp/src
