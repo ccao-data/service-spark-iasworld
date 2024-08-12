@@ -1,5 +1,7 @@
 x-default: &node
   image: ${CCAO_REGISTRY_URL}/service-spark-iasworld:latest
+  # Corresponds to the user set in the Dockerfile and the shiny-server
+  # user on the server for proper write perms to mounted directories
   user: 1003:0
   build:
     context: .
@@ -7,6 +9,7 @@ x-default: &node
   volumes:
     - ./drivers:/jdbc:ro
     - ./src:/tmp/src:ro
+    - ./config:/tmp/config:ro
     - ./config/spark-defaults.conf:/opt/bitnami/spark/conf/spark-defaults.conf:ro
     - ./target:/tmp/target:rw
   secrets:
@@ -62,6 +65,8 @@ services:
     ports:
       - 9090:9090
 
+# Using a dedicated subnet because the Docker default subnet conflicts
+# with some of the CCAO's internal routing
 networks:
   sparknet:
     ipam:

@@ -4,18 +4,19 @@ from datetime import datetime
 from utils.helpers import construct_predicates, read_predicates
 from utils.spark import SharedSparkSession, SparkJob
 
-# Default values for jobs. CUR and YEAR values are only used if
-# USE_PARTITIONS is true. USE_PREDICATES should be disabled for any table
-# without a PARID column
+# Default values for jobs, used per job if not explicitly set in the job's
+# input JSON. CUR and YEAR values are only used if use_partitions is true in
+# the job definition. use_predicates should be disabled for any table without
+# a PARID column
 DEFAULT_VAR_CUR = ["Y", "N", "D"]
 DEFAULT_VAR_MIN_YEAR = 1999
 DEFAULT_VAR_MAX_YEAR = datetime.now().year
 DEFAULT_VAR_USE_PREDICATES = True
 DEFAULT_VAR_USE_PARTITIONS = True
 
-# Constants for paths WITHIN the Spark container
+# Constants for paths inside the Spark container
 PATH_IPTS_PASSWORD = "/run/secrets/IPTS_PASSWORD"
-PATH_PREDICATES = "/tmp/src/predicates.csv"
+PATH_PREDICATES = "/tmp/config/default_predicates.csv"
 PATH_INITIAL_DIR = "/tmp/target/initial"
 PATH_FINAL_DIR = "/tmp/target/final"
 
@@ -99,17 +100,8 @@ def main() -> str:
     for config in jobs:
         config.repartition()
 
-    print(session_name)
-
     return session_name
 
 
 if __name__ == "__main__":
     main()
-
-# TODO: This becomes "validate and submit jobs"
-# Order of ops: validate, run spark jobs, run repartition, upload
-# args: json of job(s), upload bool, repartition bool, glue/GH bool
-
-# Separate script used to submit all jobs, wait for spark to finish, then
-# use pyarrow to repartition and boto to upload
