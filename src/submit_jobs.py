@@ -27,7 +27,10 @@ def parse_args():
         "--json-file",
         type=str,
         nargs="?",
-        help="Path to a JSON file containing job configuration(s)",
+        help="""
+        Path to a JSON file containing job configuration(s)". The path is
+        relative to the project `config/` directory
+        """,
     )
     parser.add_argument(
         "--json-string",
@@ -42,7 +45,9 @@ def parse_args():
 def main() -> str:
     # Get the job definition(s) from the argument JSON
     args = parse_args()
-    job_definitions = load_job_definitions(args)
+    job_definitions = load_job_definitions(
+        json_file=args.json_file, json_string=args.json_string
+    )
 
     # Each session is shared across all read jobs and manages job order,
     # credentialing, retries, etc.

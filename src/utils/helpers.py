@@ -1,6 +1,5 @@
 import csv
 import json
-from argparse import Namespace
 from pathlib import Path
 
 
@@ -47,12 +46,12 @@ def strip_table_prefix(table_name: str) -> str:
     return table_name
 
 
-def load_job_definitions(args: Namespace) -> dict:
+def load_job_definitions(json_file: str, json_string: str) -> dict:
     """
     Loads job definition(s) from a JSON file or a JSON string.
 
     Args:
-        args: Namespace object containing the CLI arguments. It should have
+        json_file: String path to
             either `json_file` or `json_string` value, but not both.
 
     Raises:
@@ -62,17 +61,18 @@ def load_job_definitions(args: Namespace) -> dict:
     Returns:
         dict: The job definition(s) loaded from the JSON file or string.
     """
-    if args.json_file and args.json_string:
+    if json_file and json_string:
         raise ValueError(
             "Only one argument: --json-file or --json-string can be provided"
         )
-    elif args.json_file:
-        with open(args.json_file, "r") as f:
-            job_dict = json.load(f)
-    elif args.json_string:
-        job_dict = json.loads(args.json_string)
+    elif json_file:
+        full_path = "/tmp/config" / Path(json_file)
+        with open(full_path, "r") as file:
+            job_definitions = json.load(file)
+    elif json_string:
+        job_definitions = json.loads(json_string)
     else:
         raise ValueError(
             "Either --json-file or --json-string must be provided"
         )
-    return job_dict
+    return job_definitions
