@@ -21,6 +21,7 @@ default_jobs:
   cvleg:
     table_name: iasworld.cvleg
     min_year: *min_year
+    cur: null
   dweldat:
     table_name: iasworld.dweldat
     min_year: *min_year
@@ -85,7 +86,6 @@ weekend_jobs:
     predicates_path: null
     min_year: null
     max_year: null
-    cur: null
   comdat:
     table_name: iasworld.comdat
   comnt:
@@ -96,10 +96,13 @@ weekend_jobs:
     cur: null
   cvleg:
     table_name: iasworld.cvleg
+    cur: null
   cvown:
     table_name: iasworld.cvown
+    cur: null
   cvtran:
     table_name: iasworld.cvtran
+    cur: null
   dedit:
     table_name: iasworld.dedit
     predicates_path: null
