@@ -134,6 +134,19 @@ class SparkJob:
 
         return partitions
 
+    def get_description(self) -> str:
+        """
+        Returns a formatted string describing the job, visible in the Spark UI.
+        """
+        desc = [f"{self.table_name}"]
+        if self.taxyr:
+            min_year, max_year = self.taxyr[0], self.taxyr[-1]
+            desc.append(f"taxyr=[{min_year}, {max_year}]")
+        if self.cur:
+            desc.append(f"cur=[{', '.join(self.cur)}]")
+
+        return ", ".join(desc)
+
     def read(self) -> None:
         """
         Perform the JDBC read and the initial file write to disk. Files will be
@@ -141,6 +154,7 @@ class SparkJob:
         """
         filter = self.get_filter()
         partitions = self.get_partitions()
+        description = self.get_description()
 
         # Must use the JDBC read method here since the normal spark.read()
         # doesn't accept predicates https://stackoverflow.com/a/48680140
@@ -159,6 +173,10 @@ class SparkJob:
         # because it errors with an empty string or None value
         if filter:
             df = df.filter(filter)
+
+        # Set a nice pretty description in the Spark UI to see which tables
+        # are processing
+        self.session.spark.sparkContext.setJobDescription(description)
 
         (
             df.write.mode("overwrite")
