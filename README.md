@@ -72,8 +72,9 @@ workflow using `yq`.
   directory, then passed to each table job via a file path.
 - **Filters** are logic conditions included in queries to the database. Spark
   uses [predicate pushdown](https://airbyte.com/data-engineering-resources/predicate-pushdown)
-  compose the _predicates_ and _filter_ for each query into a single SQL
-  statement. Think of filters as a SQL WHERE clause applied to each table.
+  to compose the _predicates_ and _filter_ for each query into a single SQL
+  statement. Think of filters as a SQL WHERE clause applied across all the
+  predicate chunks specified above.
 
   Filters are constructed automatically from any `min_year`, `max_year`,
   and/or `cur` values passed as part of a job definition. If these values are
