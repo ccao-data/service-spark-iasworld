@@ -107,6 +107,19 @@ class SparkJob:
             .as_posix()
         )
 
+    def get_description(self) -> str:
+        """
+        Returns a formatted string describing the job, visible in the Spark UI.
+        """
+        desc = [f"{self.table_name}"]
+        if self.taxyr:
+            min_year, max_year = self.taxyr[0], self.taxyr[-1]
+            desc.append(f"taxyr=[{min_year}, {max_year}]")
+        if self.cur:
+            desc.append(f"cur=[{', '.join(self.cur)}]")
+
+        return ", ".join(desc)
+
     def get_filter(self) -> str | None:
         """
         Translates the `taxyr` and `cur` values into SQL used to filter/limit
@@ -134,27 +147,14 @@ class SparkJob:
 
         return partitions
 
-    def get_description(self) -> str:
-        """
-        Returns a formatted string describing the job, visible in the Spark UI.
-        """
-        desc = [f"{self.table_name}"]
-        if self.taxyr:
-            min_year, max_year = self.taxyr[0], self.taxyr[-1]
-            desc.append(f"taxyr=[{min_year}, {max_year}]")
-        if self.cur:
-            desc.append(f"cur=[{', '.join(self.cur)}]")
-
-        return ", ".join(desc)
-
     def read(self) -> None:
         """
         Perform the JDBC read and the initial file write to disk. Files will be
         partitioned by the number of predicates (96 by default).
         """
+        description = self.get_description()
         filter = self.get_filter()
         partitions = self.get_partitions()
-        description = self.get_description()
 
         # Must use the JDBC read method here since the normal spark.read()
         # doesn't accept predicates https://stackoverflow.com/a/48680140
