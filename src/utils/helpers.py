@@ -30,7 +30,7 @@ def strip_table_prefix(table_name: str) -> str:
     return table_name
 
 
-def load_job_definitions(json_file: str, json_string: str) -> dict:
+def load_job_definitions(json_file: str | None, json_string: str | None) -> dict:
     """
     Loads job definition(s) from a JSON file or a JSON string.
 
