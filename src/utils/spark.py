@@ -1,6 +1,7 @@
 import os
 from pathlib import Path
 
+import boto3
 from pyarrow import dataset as ds
 from pyspark.sql import SparkSession
 
@@ -58,6 +59,9 @@ class SharedSparkSession:
         self.fetch_size = "10000"
         self.initial_compression = "snappy"
         self.final_compression = "zstd"
+
+        # Add S3 client connection to workers can upload results
+        self.s3_client = boto3.client("s3")
 
         self.spark = SparkSession.builder.appName(self.app_name).getOrCreate()
 

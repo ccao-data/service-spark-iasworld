@@ -2,7 +2,6 @@ import argparse
 from datetime import datetime
 
 from joblib import Parallel, delayed
-
 from utils.helpers import load_job_definitions, load_predicates
 from utils.spark import SharedSparkSession, SparkJob
 

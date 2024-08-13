@@ -14,6 +14,7 @@ x-default: &node
     - ./target:/tmp/target:rw
   secrets:
     - IPTS_PASSWORD
+    - AWS_CREDENTIALS
   networks:
     - sparknet
 
@@ -25,16 +26,17 @@ services:
     environment:
       - SPARK_MODE=master
 
+      - AWS_SHARED_CREDENTIALS_FILE=/run/secrets/AWS_CREDENTIALS
+      - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
       - SPARK_PUBLIC_DNS=${SPARK_PUBLIC_IP}
       - SPARK_RPC_AUTHENTICATION_ENABLED=no
       - SPARK_RPC_ENCRYPTION_ENABLED=no
-      - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
       - SPARK_SSL_ENABLED=no
       - SPARK_USER=spark
-      - IPTS_HOSTNAME
-      - IPTS_PORT
       - IPTS_SERVICE_NAME
+      - IPTS_HOSTNAME
       - IPTS_USERNAME
+      - IPTS_PORT
       - IPTS_TABLE
     ports:
       - 4040:4040
@@ -51,16 +53,17 @@ services:
       - SPARK_WORKER_CORES=32
       - SPARK_WORKER_WEBUI_PORT=9090
 
+      - AWS_SHARED_CREDENTIALS_FILE=/run/secrets/AWS_CREDENTIALS
       - SPARK_PUBLIC_DNS=${SPARK_PUBLIC_IP}
       - SPARK_RPC_AUTHENTICATION_ENABLED=no
       - SPARK_RPC_ENCRYPTION_ENABLED=no
       - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
       - SPARK_SSL_ENABLED=no
       - SPARK_USER=spark
-      - IPTS_HOSTNAME
-      - IPTS_PORT
       - IPTS_SERVICE_NAME
+      - IPTS_HOSTNAME
       - IPTS_USERNAME
+      - IPTS_PORT
       - IPTS_TABLE
     ports:
       - 9090:9090
@@ -77,3 +80,5 @@ networks:
 secrets:
   IPTS_PASSWORD:
     file: secrets/IPTS_PASSWORD
+  AWS_CREDENTIALS:
+    file: ~/.aws/credentials
