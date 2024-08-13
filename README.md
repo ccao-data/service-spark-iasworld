@@ -107,6 +107,7 @@ Here's a breakdown of important files and the purpose of each one:
 ├── drivers/
 │   └── ojdbc8.jar             - Not included, but necessary to connect to iasWorld
 ├── secrets/
+│   ├── AWS_CREDENTIALS_FILE   - AWS credentials config file specific to this job
 │   └── IPTS_PASSWORD          - Password file loaded at runtime into containers
 ├── src/
 │   ├── submit_jobs.py         - Job submission entrypoint. Takes JSON as input

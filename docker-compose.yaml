@@ -85,4 +85,4 @@ secrets:
   IPTS_PASSWORD:
     file: secrets/IPTS_PASSWORD
   AWS_CREDENTIALS:
-    file: ~/.aws/credentials
+    file: secrets/AWS_CREDENTIALS_FILE
