@@ -70,8 +70,10 @@ workflow using `yq`.
 
   Predicates are defined via a file of SQL statements in the `config/`
   directory, then passed to each table job via a file path.
-- **Filters** are logic conditions applied to a query as part of the initial
-  read. They're effectively a SQL WHERE clause, and apply before each read.
+- **Filters** are logic conditions included in queries to the database. Spark
+  uses [predicate pushdown](https://airbyte.com/data-engineering-resources/predicate-pushdown)
+  compose the _predicates_ and _filter_ for each query into a single SQL
+  statement. Think of filters as a SQL WHERE clause applied to each table.
 
   Filters are constructed automatically from any `min_year`, `max_year`,
   and/or `cur` values passed as part of a job definition. If these values are
