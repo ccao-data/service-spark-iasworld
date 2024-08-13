@@ -95,7 +95,8 @@ def main() -> str:
             final_dir=PATH_FINAL_DIR,
         )
 
-        # Run the Spark read job. Each job will create N predicates
+        # Register the job so that we can run them all in parallel once
+        # they have all been registered. Each job will create N predicates
         # files in the target/initial/ dir, assuming predicates are enabled
         jobs.append(spark_job)
 
