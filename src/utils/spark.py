@@ -5,7 +5,7 @@ import boto3
 from pyarrow import dataset as ds
 from pyspark.sql import SparkSession
 
-from utils.helpers import clear_directory, strip_table_prefix
+from utils.helpers import strip_table_prefix
 
 
 class SharedSparkSession:
@@ -265,10 +265,6 @@ class SparkJob:
             self.session.s3_client.upload_file(
                 local_path.resolve().as_posix(), self.session.s3_bucket, s3_key
             )
-
-        # Clear the output directory once all files have uploaded. This also
-        # cleans up the metadata, .crc, and _SUCCESS files from Spark
-        clear_directory(self.final_dir)
 
         # Delete files in the S3 directory that are not in the local directory
         files_to_delete = s3_files - local_files
