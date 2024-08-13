@@ -27,10 +27,10 @@ default_jobs:
     min_year: *min_year
   enter:
     table_name: iasworld.enter
-    predicates_path: null
     min_year: null
     max_year: null
     cur: null
+    predicates_path: null
   htpar:
     table_name: iasworld.htpar
     min_year: *min_year
@@ -51,10 +51,10 @@ default_jobs:
     min_year: *min_year
   permit:
     table_name: iasworld.permit
-    predicates_path: null
     min_year: null
     max_year: null
     cur: null
+    predicates_path: null
   sales:
     table_name: iasworld.sales
     min_year: null
@@ -62,15 +62,17 @@ default_jobs:
   splcom:
     table_name: iasworld.splcom
     min_year: *min_year
+    cur: null
+    predicates_path: null
 
 # Jobs that run on the weekend, fully refreshing all critical tables
 weekend_jobs:
   aasysjur:
     table_name: iasworld.aasysjur
-    predicates_path: null
     min_year: null
     max_year: null
     cur: null
+    predicates_path: null
   addn:
     table_name: iasworld.addn
   addrindx:
@@ -83,56 +85,60 @@ weekend_jobs:
     table_name: iasworld.asmt_hist
   cname:
     table_name: iasworld.cname
-    predicates_path: null
     min_year: null
     max_year: null
+    predicates_path: null
   comdat:
     table_name: iasworld.comdat
   comnt:
     table_name: iasworld.comnt
-    predicates_path: null
     min_year: null
     max_year: null
     cur: null
+    predicates_path: null
   cvleg:
     table_name: iasworld.cvleg
     cur: null
   cvown:
     table_name: iasworld.cvown
     cur: null
+    predicates_path: null
   cvtran:
     table_name: iasworld.cvtran
     cur: null
+    predicates_path: null
   dedit:
     table_name: iasworld.dedit
-    predicates_path: null
     min_year: null
     max_year: null
     cur: null
+    predicates_path: null
   dweldat:
     table_name: iasworld.dweldat
   enter:
     table_name: iasworld.enter
-    predicates_path: null
     min_year: null
     max_year: null
     cur: null
+    predicates_path: null
   exadmn:
     table_name: iasworld.exadmn
   exapp:
     table_name: iasworld.exapp
   excode:
     table_name: iasworld.excode
+    predicates_path: null
   exdet:
     table_name: iasworld.exdet
   htagnt:
     table_name: iasworld.htagnt
-    predicates_path: null
     min_year: null
     max_year: null
     cur: null
+    predicates_path: null
   htdates:
     table_name: iasworld.htdates
+    cur: null
   htpar:
     table_name: iasworld.htpar
   land:
@@ -141,16 +147,16 @@ weekend_jobs:
     table_name: iasworld.legdat
   lpmod:
     table_name: iasworld.lpmod
-    predicates_path: null
     min_year: null
     max_year: null
     cur: null
+    predicates_path: null
   lpnbhd:
     table_name: iasworld.lpnbhd
-    predicates_path: null
     min_year: null
     max_year: null
     cur: null
+    predicates_path: null
   oby:
     table_name: iasworld.oby
   owndat:
@@ -159,38 +165,37 @@ weekend_jobs:
     table_name: iasworld.pardat
   permit:
     table_name: iasworld.permit
-    predicates_path: null
     min_year: null
     max_year: null
     cur: null
+    predicates_path: null
   rcoby:
     table_name: iasworld.rcoby
-    predicates_path: null
     min_year: null
     max_year: null
     cur: null
+    predicates_path: null
   sales:
     table_name: iasworld.sales
     min_year: null
     max_year: null
-    cur: null
   splcom:
     table_name: iasworld.splcom
+    cur: null
+    predicates_path: null
   valclass:
     table_name: iasworld.valclass
-    predicates_path: null
-    min_year: null
-    max_year: null
     cur: null
+    predicates_path: null
 
 # Jobs with a good mix of situations used for testing
 test_jobs:
   aasysjur:
     table_name: iasworld.aasysjur
-    predicates_path: null
     min_year: null
     max_year: null
     cur: null
+    predicates_path: null
   addn:
     table_name: iasworld.addn
     min_year: *min_year
@@ -208,7 +213,5 @@ test_jobs:
     max_year: null
   valclass:
     table_name: iasworld.valclass
-    predicates_path: null
-    min_year: null
-    max_year: null
     cur: null
+    predicates_path: null
