@@ -43,10 +43,12 @@ as a file. All jobs should have the following format:
 - `table_name (required)` - Name of the iasWorld table to extract, must be
   prefixed with `iasworld.`.
 - `min_year (optional)` - Minimum tax year (inclusive) to extract from the
-  table. Defaults to `1999`.
+  table. Set to `null` in a job definition to ignore this column when filtering
+  and partitioning. Defaults to `1999`.
 - `max_year (optional)` - Maximum tax year (inclusive) to extract from the
   table. To extract a single year, set `min_year` and `max_year` to the same
-  value. Defaults to the current year.
+  value. Set to `null` in a job definition to ignore this column when filtering
+  and partitioning. Defaults to the current year.
 - `cur (optional)` - Values of the `cur` column to extract from the table.
   Must be an array. Set to `null` in a job definition to ignore this column
   when filtering and partitioning. Defaults to `["Y", "N", "D"]`.
