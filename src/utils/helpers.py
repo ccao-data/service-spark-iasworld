@@ -2,6 +2,26 @@ import json
 from pathlib import Path
 
 
+def clear_directory(dir: Path | str) -> None:
+    """
+    Clears all files and subdirectories in the specified directory.
+
+    Args:
+        directory_path: A string or Path object to the target directory,
+            relative to the Docker container.
+    """
+    dir_path = Path(dir)
+    if not dir_path.is_dir():
+        raise ValueError(f"The path {dir} is not a valid directory.")
+
+    for item in dir_path.iterdir():
+        if item.is_dir():
+            clear_directory(item)  # Recursively clear
+            item.rmdir()
+        else:
+            item.unlink()
+
+
 def load_predicates(path: str) -> list[str]:
     """
     Fetch BETWEEN predicates from a provided SQL file.
