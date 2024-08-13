@@ -10,7 +10,7 @@ from utils.spark import SharedSparkSession, SparkJob
 DEFAULT_VAR_CUR = ["Y", "N", "D"]
 DEFAULT_VAR_MIN_YEAR = 1999
 DEFAULT_VAR_MAX_YEAR = datetime.now().year
-DEFAULT_VAR_PREDICATES_PATH = "default_predicates.csv"
+DEFAULT_VAR_PREDICATES_PATH = "default_predicates.sql"
 
 # Constants for paths inside the Spark container
 PATH_IPTS_PASSWORD = "/run/secrets/IPTS_PASSWORD"

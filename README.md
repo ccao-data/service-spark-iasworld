@@ -54,7 +54,7 @@ as a file. All jobs should have the following format:
   directory. The SQL file should define SQL BETWEEN expressions, where each
   expression is one chunk that will be extracted by Spark during JDBC reads.
   Expressions should not be overlapping. Set to `null` in a job definition
-  to disable using predicates completely. Defaults to `default_predicates.csv`.
+  to disable using predicates completely. Defaults to `default_predicates.sql`.
 
 Long-lived job definitions are stored as YAML in `config/default_jobs.yaml`,
 then converted to JSON for submission. See `run.sh` for an example of this
@@ -97,7 +97,7 @@ Here's a breakdown of important files and the purpose of each one:
 ├── .github/                   - GitHub Actions workflows for linting, builds, etc.
 ├── config/
 │   ├── default_jobs.yaml      - Definitions used to configure Spark jobs per table
-│   ├── default_predicates.csv - A list of start/end PINs defining equally sized chunks
+│   ├── default_predicates.sql - List of mutually exclusive SQL BETWEEN expressions
 │   └── spark-defaults.conf    - Spark memory and driver settings
 ├── drivers/
 │   └── ojdbc8.jar             - Not included, but necessary to connect to iasWorld
