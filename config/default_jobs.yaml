@@ -1,0 +1,217 @@
+define: &min_year 2022
+
+# Jobs that run daily at 1AM, typically getting the 2 most
+# recent years of data for critical tables
+default_jobs:
+  addn:
+    table_name: iasworld.addn
+    min_year: *min_year
+  aprval:
+    table_name: iasworld.aprval
+    min_year: *min_year
+  asmt_all:
+    table_name: iasworld.asmt_all
+    min_year: *min_year
+  asmt_hist:
+    table_name: iasworld.asmt_hist
+    min_year: *min_year
+  comdat:
+    table_name: iasworld.comdat
+    min_year: *min_year
+  cvleg:
+    table_name: iasworld.cvleg
+    min_year: *min_year
+    cur: null
+  dweldat:
+    table_name: iasworld.dweldat
+    min_year: *min_year
+  enter:
+    table_name: iasworld.enter
+    min_year: null
+    max_year: null
+    cur: null
+    predicates_path: null
+  htpar:
+    table_name: iasworld.htpar
+    min_year: *min_year
+  land:
+    table_name: iasworld.land
+    min_year: *min_year
+  legdat:
+    table_name: iasworld.legdat
+    min_year: *min_year
+  oby:
+    table_name: iasworld.oby
+    min_year: *min_year
+  owndat:
+    table_name: iasworld.owndat
+    min_year: *min_year
+  pardat:
+    table_name: iasworld.pardat
+    min_year: *min_year
+  permit:
+    table_name: iasworld.permit
+    min_year: null
+    max_year: null
+    cur: null
+    predicates_path: null
+  sales:
+    table_name: iasworld.sales
+    min_year: null
+    max_year: null
+  splcom:
+    table_name: iasworld.splcom
+    min_year: *min_year
+    cur: null
+    predicates_path: null
+
+# Jobs that run on the weekend, fully refreshing all critical tables
+weekend_jobs:
+  aasysjur:
+    table_name: iasworld.aasysjur
+    min_year: null
+    max_year: null
+    cur: null
+    predicates_path: null
+  addn:
+    table_name: iasworld.addn
+  addrindx:
+    table_name: iasworld.addrindx
+  aprval:
+    table_name: iasworld.aprval
+  asmt_all:
+    table_name: iasworld.asmt_all
+  asmt_hist:
+    table_name: iasworld.asmt_hist
+  cname:
+    table_name: iasworld.cname
+    min_year: null
+    max_year: null
+    predicates_path: null
+  comdat:
+    table_name: iasworld.comdat
+  comnt:
+    table_name: iasworld.comnt
+    min_year: null
+    max_year: null
+    cur: null
+    predicates_path: null
+  cvleg:
+    table_name: iasworld.cvleg
+    cur: null
+  cvown:
+    table_name: iasworld.cvown
+    cur: null
+    predicates_path: null
+  cvtran:
+    table_name: iasworld.cvtran
+    cur: null
+    predicates_path: null
+  dedit:
+    table_name: iasworld.dedit
+    min_year: null
+    max_year: null
+    cur: null
+    predicates_path: null
+  dweldat:
+    table_name: iasworld.dweldat
+  enter:
+    table_name: iasworld.enter
+    min_year: null
+    max_year: null
+    cur: null
+    predicates_path: null
+  exadmn:
+    table_name: iasworld.exadmn
+  exapp:
+    table_name: iasworld.exapp
+  excode:
+    table_name: iasworld.excode
+    predicates_path: null
+  exdet:
+    table_name: iasworld.exdet
+  htagnt:
+    table_name: iasworld.htagnt
+    min_year: null
+    max_year: null
+    cur: null
+    predicates_path: null
+  htdates:
+    table_name: iasworld.htdates
+    cur: null
+  htpar:
+    table_name: iasworld.htpar
+  land:
+    table_name: iasworld.land
+  legdat:
+    table_name: iasworld.legdat
+  lpmod:
+    table_name: iasworld.lpmod
+    min_year: null
+    max_year: null
+    cur: null
+    predicates_path: null
+  lpnbhd:
+    table_name: iasworld.lpnbhd
+    min_year: null
+    max_year: null
+    cur: null
+    predicates_path: null
+  oby:
+    table_name: iasworld.oby
+  owndat:
+    table_name: iasworld.owndat
+  pardat:
+    table_name: iasworld.pardat
+  permit:
+    table_name: iasworld.permit
+    min_year: null
+    max_year: null
+    cur: null
+    predicates_path: null
+  rcoby:
+    table_name: iasworld.rcoby
+    min_year: null
+    max_year: null
+    cur: null
+    predicates_path: null
+  sales:
+    table_name: iasworld.sales
+    min_year: null
+    max_year: null
+  splcom:
+    table_name: iasworld.splcom
+    cur: null
+    predicates_path: null
+  valclass:
+    table_name: iasworld.valclass
+    cur: null
+    predicates_path: null
+
+# Jobs with a good mix of situations used for testing
+test_jobs:
+  aasysjur:
+    table_name: iasworld.aasysjur
+    min_year: null
+    max_year: null
+    cur: null
+    predicates_path: null
+  addn:
+    table_name: iasworld.addn
+    min_year: *min_year
+  addrindx:
+    table_name: iasworld.addrindx
+    min_year: 2011
+    max_year: 2013
+  aprval:
+    table_name: iasworld.aprval
+    max_year: 2004
+    cur: ["Y"]
+  sales:
+    table_name: iasworld.sales
+    min_year: null
+    max_year: null
+  valclass:
+    table_name: iasworld.valclass
+    cur: null
+    predicates_path: null

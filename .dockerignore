@@ -1,0 +1,9 @@
+.env
+.dockerignore
+.git/
+drivers/
+secrets/
+target/
+logs/
+backup/
+venv/
