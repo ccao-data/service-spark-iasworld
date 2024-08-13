@@ -3,7 +3,7 @@ from datetime import datetime
 
 from joblib import Parallel, delayed
 
-from utils.helpers import load_predicates, load_job_definitions
+from utils.helpers import load_job_definitions, load_predicates
 from utils.spark import SharedSparkSession, SparkJob
 
 # Default values for jobs, used per job if not explicitly set in the job's
@@ -100,9 +100,13 @@ def main() -> str:
         jobs.append(spark_job)
 
     # Run all Spark read jobs, using parallelization so that a new job can
-    # start before the previous one finishes
+    # start before the previous one finishes. The function is required when
+    # using delayed()
+    def read_job(job: SparkJob):
+        job.read()
+
     Parallel(n_jobs=NUM_PARALLEL_JOBS, prefer="threads")(
-        delayed(job.read())(job) for job in jobs
+        delayed(read_job)(job) for job in jobs
     )
 
     # Stop the Spark session once all JDBC reads are complete. This is CRITICAL
