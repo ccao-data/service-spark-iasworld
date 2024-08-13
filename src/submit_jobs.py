@@ -19,10 +19,10 @@ PATH_IPTS_PASSWORD = "/run/secrets/IPTS_PASSWORD"
 PATH_INITIAL_DIR = "/tmp/target/initial"
 PATH_FINAL_DIR = "/tmp/target/final"
 
-# Number of Spark read jobs to run in parallel. Limited to 2 jobs just so
-# a new job can start before the prior one finishes. More than this seems
-# to reduce overall speed
-NUM_PARALLEL_JOBS = 2
+# Number of Spark read jobs to run in parallel. Limited to a small number just
+# so more jobs can start while single node jobs are running; most of the actual
+# parallelism happens within each job
+NUM_PARALLEL_JOBS = 4
 
 
 def parse_args():
@@ -99,8 +99,8 @@ def main() -> str:
         # files in the target/initial/ dir, assuming predicates are enabled
         jobs.append(spark_job)
 
-    # Run all Spark read jobs, using parallelization so that a new job can
-    # start before the previous one finishes. The function is required when
+    # Run all Spark read jobs, using parallelization so that new jobs can
+    # start before the previous ones finish. The mini-function is required when
     # using delayed()
     def read_job(job: SparkJob):
         job.read()
