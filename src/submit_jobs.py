@@ -1,6 +1,8 @@
 import argparse
 from datetime import datetime
 
+from joblib import Parallel, delayed
+
 from utils.helpers import load_predicates, load_job_definitions
 from utils.spark import SharedSparkSession, SparkJob
 
@@ -16,6 +18,11 @@ DEFAULT_VAR_PREDICATES_PATH = "default_predicates.sql"
 PATH_IPTS_PASSWORD = "/run/secrets/IPTS_PASSWORD"
 PATH_INITIAL_DIR = "/tmp/target/initial"
 PATH_FINAL_DIR = "/tmp/target/final"
+
+# Number of Spark read jobs to run in parallel. Limited to 2 jobs just so
+# a new job can start before the prior one finishes. More than this seems
+# to reduce overall speed
+NUM_PARALLEL_JOBS = 2
 
 
 def parse_args():
@@ -90,15 +97,21 @@ def main() -> str:
 
         # Run the Spark read job. Each job will create N predicates
         # files in the target/initial/ dir, assuming predicates are enabled
-        spark_job.read()
         jobs.append(spark_job)
+
+    # Run all Spark read jobs, using parallelization so that a new job can
+    # start before the previous one finishes
+    Parallel(n_jobs=NUM_PARALLEL_JOBS, prefer="threads")(
+        delayed(job.read())(job) for job in jobs
+    )
 
     # Stop the Spark session once all JDBC reads are complete. This is CRITICAL
     # as it frees all memory from the cluster for use in the repartition step
     session.spark.stop()
 
     # Use PyArrow to condense the many small Parquet files created by the reads
-    # into single files per Hive partition
+    # into single files per Hive partition. This step is sequential since it
+    # uses a ton of memory
     for job in jobs:
         job.repartition()
 
