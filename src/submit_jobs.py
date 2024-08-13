@@ -119,6 +119,10 @@ def main() -> str:
     for job in jobs:
         job.repartition()
 
+    # Upload extracted files to AWS S3 in Hive-partitioned Parquet
+    for job in jobs:
+        job.upload()
+
     return session_name
 
 
