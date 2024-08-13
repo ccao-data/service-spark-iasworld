@@ -30,13 +30,18 @@ def strip_table_prefix(table_name: str) -> str:
     return table_name
 
 
-def load_job_definitions(json_file: str | None, json_string: str | None) -> dict:
+def load_job_definitions(
+    json_file: str | None, json_string: str | None
+) -> dict:
     """
     Loads job definition(s) from a JSON file or a JSON string.
 
     Args:
-        json_file: String path to
-            either `json_file` or `json_string` value, but not both.
+        json_file: String path to a JSON file containing job configurations
+            in the format specified in the README. Path is relative to the
+            `config/` directory.
+        json_string: JSON string containing job configurations in the format
+            specified in the README.
 
     Raises:
         ValueError: If both `json_file` and `json_string` are provided, or if
