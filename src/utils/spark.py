@@ -71,7 +71,7 @@ class SparkJob:
         session: The shared Spark session containing the Spark connection and
             database credentials.
         table_name: The name of the iasWorld table to read from. Should be
-            predicated with 'iasworld.'.
+            prefixed with 'iasworld.'.
         taxyr: The tax year(s) to filter and partition by.
         cur: The cur value(s) to filter and partition by.
         predicates: A list of SQL predicates for chunking JDBC reads.
@@ -109,8 +109,8 @@ class SparkJob:
 
     def get_filter(self) -> str | None:
         """
-        Translates the taxyr and cur values into SQL used to filter/limit the
-        values read from the table.
+        Translates the `taxyr` and `cur` values into SQL used to filter/limit
+        the values read from the table.
         """
         filter = []
         if self.taxyr:
@@ -118,30 +118,26 @@ class SparkJob:
         if self.cur:
             quoted_cur = [f"'{x}'" for x in self.cur]
             filter.append(f"cur IN ({', '.join(quoted_cur)})")
+
         return " AND ".join(filter) if filter else None
 
     def get_partitions(self) -> list[str]:
         """
-        Partition values used for Hive-style partitions e.g. the outputs from
-        read() will look something like:
-
-            /tmp/target/initial/addn/taxyr=2020/cur=Y/big_file_name1.parquet
-            /tmp/target/initial/addn/taxyr=2021/cur=N/big_file_name1.parquet
-
-        Uses `taxyr` or `cur` if either is set, or both if both are set.
+        Sets the partitions for output Parquet files. Partitions are always
+        based on the `taxyr` and `cur`, provided they are set.
         """
         partitions = []
         if self.taxyr:
             partitions.append("taxyr")
         if self.cur:
             partitions.append("cur")
+
         return partitions
 
     def read(self) -> None:
         """
         Perform the JDBC read and the initial file write to disk. Files will be
-        partitioned by the number of values passed via predicates (by default
-        96 per taxyr).
+        partitioned by the number of predicates (96 by default).
         """
         filter = self.get_filter()
         partitions = self.get_partitions()
@@ -174,7 +170,7 @@ class SparkJob:
     def repartition(self) -> None:
         """
         After the initial read, there will be many small Parquet files. This
-        method uses pyarrow to repartition the data into a single file per
+        method uses PyArrow to repartition the data into a single file per
         Hive partition. We could do this with Spark but it's much slower. The
         goal is to go from this:
 

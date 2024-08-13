@@ -1,17 +1,16 @@
 import argparse
 from datetime import datetime
 
-from utils.helpers import construct_predicates, load_job_definitions
+from utils.helpers import load_predicates, load_job_definitions
 from utils.spark import SharedSparkSession, SparkJob
 
 # Default values for jobs, used per job if not explicitly set in the job's
-# input JSON. CUR and YEAR values are always used for partitioning and
-# filtering if they are set
+# input JSON. CUR and YEAR values are used for partitioning and filtering
+# if they are set
 DEFAULT_VAR_CUR = ["Y", "N", "D"]
 DEFAULT_VAR_MIN_YEAR = 1999
 DEFAULT_VAR_MAX_YEAR = datetime.now().year
 DEFAULT_VAR_PREDICATES_PATH = "default_predicates.csv"
-DEFAULT_VAR_PREDICATES_TYPE = "string"
 
 # Constants for paths inside the Spark container
 PATH_IPTS_PASSWORD = "/run/secrets/IPTS_PASSWORD"
@@ -65,19 +64,18 @@ def main() -> str:
         cur = job_definition.get("cur", DEFAULT_VAR_CUR)
         min_year = job_definition.get("min_year", DEFAULT_VAR_MIN_YEAR)
         max_year = job_definition.get("max_year", DEFAULT_VAR_MAX_YEAR)
+        predicates_path = job_definition.get(
+            "predicates_path", DEFAULT_VAR_PREDICATES_PATH
+        )
+
+        # Construct the year range and predicates to use for the job query
         years = (
             [x for x in range(min_year, max_year + 1)]
             if min_year and max_year
             else None
         )
-
-        predicates_path = job_definition.get(
-            "predicates_path", DEFAULT_VAR_PREDICATES_PATH
-        )
         predicates = (
-            construct_predicates(predicates_path, DEFAULT_VAR_PREDICATES_TYPE)
-            if predicates_path
-            else None
+            load_predicates(predicates_path) if predicates_path else None
         )
 
         spark_job = SparkJob(
@@ -99,7 +97,7 @@ def main() -> str:
     # as it frees all memory from the cluster for use in the repartition step
     session.spark.stop()
 
-    # Use pyarrow to condense the many small Parquet files created by the reads
+    # Use PyArrow to condense the many small Parquet files created by the reads
     # into single files per Hive partition
     for job in jobs:
         job.repartition()

@@ -30,8 +30,7 @@ as a file. All jobs should have the following format:
     "min_year": 2020,
     "max_year": 2024,
     "cur": ["Y", "D"],
-    "predicates_path": "default_predicates.csv",
-    "predicates_type": "string"
+    "predicates_path": "default_predicates.sql"
   },
   "job2": {
     ...
@@ -49,21 +48,39 @@ as a file. All jobs should have the following format:
   table. To extract a single year, set `min_year` and `max_year` to the same
   value. Defaults to the current year.
 - `cur (optional)` - Values of the `cur` column to extract from the table.
-  Must be an array. Defaults to `["Y", "N", "D"]`.
-- `predicates_path (optional)` - String path to a CSV file within the
-  `config/` directory. The CSV file should define the column, start value, and
-  end value used to construct a SQL BETWEEN expression. Each line creates its
-  own expression equivalent to one chunk of a table during reading. Set to
-  in a job definition `null` to disable using predicates completely. Defaults
-  to `default_predicates.csv`.
-- `predicates_type (optional)` - Data type of the predicate column, either
-  "string" or "numeric". The "string" type is quoted in the generated
-  SQL BETWEEN predicates, while the "numeric" type is not. Defaults
-  to `"string"`.
+  Must be an array. Set to `null` in a job definition to ignore this column
+  when filtering and partitioning. Defaults to `["Y", "N", "D"]`.
+- `predicates_path (optional)` - String path to a SQL file within the `config/`
+  directory. The SQL file should define SQL BETWEEN expressions, where each
+  expression is one chunk that will be extracted by Spark during JDBC reads.
+  Expressions should not be overlapping. Set to `null` in a job definition
+  to disable using predicates completely. Defaults to `default_predicates.csv`.
 
 Long-lived job definitions are stored as YAML in `config/default_jobs.yaml`,
 then converted to JSON for submission. See `run.sh` for an example of this
 workflow using `yq`.
+
+### Predicates, filtering, and partitioning
+
+- **Predicates** are SQL statements used to chunk a table during reads
+  against the iasWorld database. The statements define mutually exclusive
+  queries that run in parallel (in order to speed up query execution).
+
+  Predicates are defined via a file of SQL statements in the `config/`
+  directory, then passed to each table job via a file path.
+- **Filters** are logic conditions applied to a query as part of the initial
+  read. They're effectively a SQL WHERE clause, and apply before each read.
+
+  Filters are constructed automatically from any `min_year`, `max_year`,
+  and/or `cur` values passed as part of a job definition. If these values are
+  all null, then the entire table is returned.
+- **Partitions** define how the output Parquet files returned from each should
+  be broken up. We use Hive partitioning by default, which yields partitions
+  with the structure `$TABLE/taxyr=$YEAR/cur=$CUR_VALUE/part-0.parquet`.
+
+  Like filters, partitions are determined automatically via any `min_year`,
+  `max_year`, and/or `cur` values that are set. If these values are all null,
+  then the table is returned as a single file e.g. `$TABLE/part-0.parquet`.
 
 ## Structure
 

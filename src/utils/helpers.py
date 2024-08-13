@@ -1,40 +1,24 @@
-import csv
 import json
 from pathlib import Path
 
 
-def construct_predicates(pred_path: str, pred_type: str) -> list[str]:
+def load_predicates(path: str) -> list[str]:
     """
-    Constructs SQL BETWEEN predicates based on a provided CSV file.
+    Fetch BETWEEN predicates from a provided SQL file.
 
     Args:
-        pred_path: String path to a CSV file within the `config/`
-            directory. The CSV file should define the column, start value, and
-            end value used to construct a SQL BETWEEN expression. Each line
-            creates its own expression equivalent to one chunk of the table
-            during reading.
-        pred_type: Data type of the predicate column, either "string" or
-           "numeric". The "string" type is quoted in the generated SQL BETWEEN,
-           while the "numeric" type is not.
+        path: String path to a SQL file within the `config/`
+            directory. The SQL file should define SQL BETWEEN expressions,
+            where each expression is one chunk that will be extracted by
+            Spark during JDBC reads. Expressions should not be overlapping.
 
     Returns:
         A list of SQL predicate strings used to divide a table into chunks
-        during JDBC read jobs.
+        during JDBC reads.
     """
-    if pred_type not in {"string", "numeric"}:
-        raise ValueError("pred_type must be either 'string' or 'numeric'")
-
-    full_path = "/tmp/config" / Path(pred_path)
+    full_path = "/tmp/config" / Path(path)
     with open(full_path.resolve().as_posix(), mode="r") as file:
-        csv_reader = csv.reader(file)
-        next(csv_reader)  # Skip header row
-        csv_lines = [row for row in csv_reader]
-
-    q = "'" if pred_type == "string" else ""
-    predicates = [
-        f"({column} BETWEEN {q}{start}{q} AND {q}{end}{q})"
-        for (column, start, end) in csv_lines
-    ]
+        predicates = [line.strip() for line in file.readlines()]
 
     return predicates
 
