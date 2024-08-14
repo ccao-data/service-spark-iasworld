@@ -255,20 +255,26 @@ class SparkJob:
                 table_subdirs.add(dir_key)
 
         # For each subdirectory in the local output, purge the equivalent
-        # subdirectory in S3. This is to prevent stale files with different S3
-        # keys from hanging around and polluting our data in Athena
+        # subdirectory in S3 of any files that won't be replaced by new uploads.
+        # This is to prevent stale files with different S3 keys from hanging
+        # around and polluting our data in Athena
         paginator = self.session.s3_client.get_paginator("list_objects_v2")
-        s3_files_to_delete = set()
+        s3_files = set()
         for subdir in table_subdirs:
             for page in paginator.paginate(
                 Bucket=self.session.s3_bucket,
                 Prefix=(s3_table_prefix / subdir).as_posix(),
             ):
                 for obj in page.get("Contents", []):
-                    s3_files_to_delete.add(obj["Key"])
+                    s3_key = Path(obj["Key"]).relative_to(s3_table_prefix)
+                    s3_files.add(s3_key)
 
+        s3_files_to_delete = s3_files - table_files
         if s3_files_to_delete:
-            delete_objects = [{"Key": f"{key}"} for key in s3_files_to_delete]
+            delete_objects = [
+                {"Key": f"{s3_table_prefix.as_posix()}/{key.as_posix()}"}
+                for key in s3_files_to_delete
+            ]
             self.session.s3_client.delete_objects(
                 Bucket=self.session.s3_bucket,
                 Delete={"Objects": delete_objects},
