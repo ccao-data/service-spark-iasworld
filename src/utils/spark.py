@@ -248,8 +248,8 @@ class SparkJob:
         table_subdirs = set()
         for file in table_dir.rglob("*.parquet"):
             if file.is_file():
-                file_key = file.relative_to(table_dir).as_posix()
-                dir_key = file.relative_to(table_dir).parent.as_posix()
+                file_key = file.relative_to(table_dir)
+                dir_key = file.relative_to(table_dir).parent
                 table_files.add(file_key)
                 table_subdirs.add(dir_key)
 
