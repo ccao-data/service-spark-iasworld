@@ -282,10 +282,12 @@ class SparkJob:
 
         # List all files in the local table directory to S3
         for file in table_files:
-            local_file = (table_dir / file).resolve().as_posix()
-            s3_key = (s3_table_prefix / file).as_posix()
+            local_file = table_dir / file
+            s3_key = s3_table_prefix / file
             self.session.s3_client.upload_file(
-                local_file, self.session.s3_bucket, s3_key
+                local_file.resolve().as_posix(),
+                self.session.s3_bucket,
+                s3_key.as_posix(),
             )
 
         # Purge the local output directories once all files have uploaded. This
