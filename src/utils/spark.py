@@ -55,6 +55,13 @@ class SharedSparkSession:
             f"{self.ipts_service_name}"
         )
 
+        # GitHub credentials for launching a target workflow once all jobs
+        # are finished running
+        self.gh_app_id = os.getenv("GH_APP_ID")
+        self.gh_dbt_repo = os.getenv("GH_DBT_REPO")
+        self.gh_dbt_workflow = os.getenv("GH_DBT_WORKFLOW")
+        self.gh_pem_path = os.getenv("GH_PEM_PATH")
+
         # Load runtime secret using Compose secrets setup
         with open(self.password_file_path, "r") as file:
             self.ipts_password = file.read().strip()
