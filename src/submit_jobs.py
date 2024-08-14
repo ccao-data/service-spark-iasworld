@@ -17,6 +17,7 @@ DEFAULT_VAR_PREDICATES_PATH = "default_predicates.sql"
 PATH_IPTS_PASSWORD = "/run/secrets/IPTS_PASSWORD"
 PATH_INITIAL_DIR = "/tmp/target/initial"
 PATH_FINAL_DIR = "/tmp/target/final"
+PATH_GH_PEM = "/run/secrets/GH_PEM"
 
 # Number of Spark read jobs to run in parallel. Limited to a small number just
 # so more jobs can start while single node jobs are running; most of the actual
@@ -59,7 +60,9 @@ def main() -> str:
     current_datetime = datetime.now().strftime("%Y-%m-%d_%H:%M:%S")
     session_name = f"iasworld_{current_datetime}"
     session = SharedSparkSession(
-        app_name=session_name, password_file_path=PATH_IPTS_PASSWORD
+        app_name=session_name,
+        password_file_path=PATH_IPTS_PASSWORD,
+        gh_pem_path=PATH_GH_PEM,
     )
 
     # For each Spark job, get the table structure based on the job definition

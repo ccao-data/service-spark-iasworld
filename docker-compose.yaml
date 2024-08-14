@@ -13,8 +13,9 @@ x-default: &node
     - ./config/spark-defaults.conf:/opt/bitnami/spark/conf/spark-defaults.conf:ro
     - ./target:/tmp/target:rw
   secrets:
-    - IPTS_PASSWORD
     - AWS_CREDENTIALS
+    - GH_PEM
+    - IPTS_PASSWORD
   networks:
     - sparknet
 
@@ -43,7 +44,6 @@ services:
       - GH_APP_ID
       - GH_DBT_REPO
       - GH_DBT_WORKFLOW
-      - GH_PEM_PATH
     ports:
       - 4040:4040
       - 8080:8080
@@ -76,7 +76,6 @@ services:
       - GH_APP_ID
       - GH_DBT_REPO
       - GH_DBT_WORKFLOW
-      - GH_PEM_PATH
     ports:
       - 9090:9090
 
@@ -90,7 +89,9 @@ networks:
     name: sparknet
 
 secrets:
-  IPTS_PASSWORD:
-    file: secrets/IPTS_PASSWORD
   AWS_CREDENTIALS:
     file: secrets/AWS_CREDENTIALS_FILE
+  GH_PEM:
+    file: secrets/GH_PEM
+  IPTS_PASSWORD:
+    file: secrets/IPTS_PASSWORD
