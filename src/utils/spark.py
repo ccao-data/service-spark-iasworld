@@ -1,6 +1,8 @@
 import os
+import shutil
 from pathlib import Path
 
+import boto3
 from pyarrow import dataset as ds
 from pyspark.sql import SparkSession
 
@@ -31,6 +33,9 @@ class SharedSparkSession:
             written via JDBC extract. Defaults to snappy.
         final_compression: The compression type final repartitioned Parquet
             files. Defaults to ztd.
+        s3_client: S3 client connection. Instantiated from secrets file.
+        s3_bucket: S3 bucket to upload extracts to.
+        s3_prefix: S3 path prefix within S3 bucket. Defaults to "iasworld".
         spark: The Spark session object.
     """
 
@@ -58,6 +63,11 @@ class SharedSparkSession:
         self.fetch_size = "10000"
         self.initial_compression = "snappy"
         self.final_compression = "zstd"
+
+        # Store S3 details so workers can upload finished jobs
+        self.s3_client = boto3.client("s3")
+        self.s3_bucket = os.getenv("AWS_S3_BUCKET")
+        self.s3_prefix = os.getenv("AWS_S3_PREFIX", "iasworld")
 
         self.spark = SparkSession.builder.appName(self.app_name).getOrCreate()
 
@@ -107,6 +117,19 @@ class SparkJob:
             .as_posix()
         )
 
+    def get_description(self) -> str:
+        """
+        Returns a formatted string describing the job, visible in the Spark UI.
+        """
+        desc = [f"{self.table_name}"]
+        if self.taxyr:
+            min_year, max_year = self.taxyr[0], self.taxyr[-1]
+            desc.append(f"taxyr=[{min_year}, {max_year}]")
+        if self.cur:
+            desc.append(f"cur=[{', '.join(self.cur)}]")
+
+        return ", ".join(desc)
+
     def get_filter(self) -> str | None:
         """
         Translates the `taxyr` and `cur` values into SQL used to filter/limit
@@ -134,27 +157,14 @@ class SparkJob:
 
         return partitions
 
-    def get_description(self) -> str:
-        """
-        Returns a formatted string describing the job, visible in the Spark UI.
-        """
-        desc = [f"{self.table_name}"]
-        if self.taxyr:
-            min_year, max_year = self.taxyr[0], self.taxyr[-1]
-            desc.append(f"taxyr=[{min_year}, {max_year}]")
-        if self.cur:
-            desc.append(f"cur=[{', '.join(self.cur)}]")
-
-        return ", ".join(desc)
-
     def read(self) -> None:
         """
         Perform the JDBC read and the initial file write to disk. Files will be
         partitioned by the number of predicates (96 by default).
         """
+        description = self.get_description()
         filter = self.get_filter()
         partitions = self.get_partitions()
-        description = self.get_description()
 
         # Must use the JDBC read method here since the normal spark.read()
         # doesn't accept predicates https://stackoverflow.com/a/48680140
@@ -220,3 +230,67 @@ class SparkJob:
             file_options=file_options,
             max_rows_per_file=5 * 10**6,
         )
+
+    def upload(self) -> None:
+        """
+        Upload the final partitioned Parquet files to S3. This clears the
+        remote S3 equivalent of each local partition prior to upload in order
+        to prevent orphan files. It also clears the local directory for the
+        table on completion.
+        """
+        table_dir = Path(self.final_dir)
+        s3_root_prefix = Path(self.session.s3_prefix)
+        s3_table_prefix = s3_root_prefix / strip_table_prefix(self.table_name)
+
+        # List all files and directories in the local table output directory
+        # Example table_files: { "taxyr=2020/part-0.parquet" }
+        # Example table_subdirs: { "taxyr=2020/" }
+        table_files = set()
+        table_subdirs = set()
+        for file in table_dir.rglob("*.parquet"):
+            if file.is_file():
+                file_key = file.relative_to(table_dir)
+                dir_key = file.relative_to(table_dir).parent
+                table_files.add(file_key)
+                table_subdirs.add(dir_key)
+
+        # For each subdirectory in the local output, purge the equivalent
+        # subdirectory in S3 of any files that won't be replaced by new uploads.
+        # This is to prevent stale files with different S3 keys from hanging
+        # around and polluting our data in Athena
+        paginator = self.session.s3_client.get_paginator("list_objects_v2")
+        s3_files = set()
+        for subdir in table_subdirs:
+            for page in paginator.paginate(
+                Bucket=self.session.s3_bucket,
+                Prefix=(s3_table_prefix / subdir).as_posix(),
+            ):
+                for obj in page.get("Contents", []):
+                    s3_key = Path(obj["Key"]).relative_to(s3_table_prefix)
+                    s3_files.add(s3_key)
+
+        s3_files_to_delete = s3_files - table_files
+        if s3_files_to_delete:
+            delete_objects = [
+                {"Key": f"{s3_table_prefix.as_posix()}/{key.as_posix()}"}
+                for key in s3_files_to_delete
+            ]
+            self.session.s3_client.delete_objects(
+                Bucket=self.session.s3_bucket,
+                Delete={"Objects": delete_objects},
+            )
+
+        # List all files in the local table directory to S3
+        for file in table_files:
+            local_file = table_dir / file
+            s3_key = s3_table_prefix / file
+            self.session.s3_client.upload_file(
+                local_file.resolve().as_posix(),
+                self.session.s3_bucket,
+                s3_key.as_posix(),
+            )
+
+        # Purge the local output directories once all files have uploaded. This
+        # also cleans up the metadata, .crc, and _SUCCESS files from Spark
+        shutil.rmtree(self.initial_dir)
+        shutil.rmtree(self.final_dir)

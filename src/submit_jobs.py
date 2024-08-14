@@ -2,7 +2,6 @@ import argparse
 from datetime import datetime
 
 from joblib import Parallel, delayed
-
 from utils.helpers import load_job_definitions, load_predicates
 from utils.spark import SharedSparkSession, SparkJob
 
@@ -119,6 +118,10 @@ def main() -> str:
     # uses a ton of memory
     for job in jobs:
         job.repartition()
+
+    # Upload extracted files to AWS S3 in Hive-partitioned Parquet
+    for job in jobs:
+        job.upload()
 
     return session_name
 
