@@ -87,12 +87,20 @@ class SharedSparkSession:
 
         self.spark = SparkSession.builder.appName(self.app_name).getOrCreate()
 
-        def run_dbt_workflow(self):
-            """
-            Method to run a GitHub Action workflow once all jobs are completed.
-            """
+    def run_gh_workflow(self):
+        """
+        Method to run a GitHub Action workflow once all jobs are completed.
+        """
+        if (
+            self.gh_app_id
+            and self.gh_pem_path
+            and self.gh_repo
+            and self.gh_workflow
+        ):
             jwt = create_jwt_token(self.gh_app_id, self.gh_pem_path)
             dispatch_gh_worfklow(jwt, self.gh_repo, self.gh_workflow)
+        else:
+            print("GitHub credentials not set, skipping workflow dispatch")
 
 
 class SparkJob:

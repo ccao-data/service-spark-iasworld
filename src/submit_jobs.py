@@ -126,6 +126,9 @@ def main() -> str:
     for job in jobs:
         job.upload()
 
+    # Trigger a GitHub workflow once all jobs are complete
+    session.run_gh_workflow()
+
     return session_name
 
 
