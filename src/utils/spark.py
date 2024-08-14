@@ -232,52 +232,56 @@ class SparkJob:
 
     def upload(self) -> None:
         """
-        Mimics the `aws s3 sync` command. Checks the files in the target S3
-        directory, compares files in a local directory, uploads any new files,
-        replaces any old files in the target with new local files, and deletes
-        files in the target not in the local directory.
+        Upload the final partitioned Parquet files to S3. This clears the
+        remote S3 equivalent of each local partition prior to upload in order
+        to prevent orphan files. It also clears the local directory for the
+        table on completion.
         """
-        local_dir = Path(self.final_dir).parent
+        table_dir = Path(self.final_dir)
+        s3_root_prefix = Path(self.session.s3_prefix)
+        s3_table_prefix = s3_root_prefix / strip_table_prefix(self.table_name)
 
-        # Fetch a list of all files in the target S3 directory
-        s3_files = set()
+        # List all files and directories in the local table output directory
+        # Example table_files: { "taxyr=2020/part-0.parquet" }
+        # Example table_subdirs: { "taxyr=2020/" }
+        table_files = set()
+        table_subdirs = set()
+        for file in table_dir.rglob("*.parquet"):
+            if file.is_file():
+                file_key = file.relative_to(table_dir).as_posix()
+                dir_key = file.relative_to(table_dir).parent.as_posix()
+                table_files.add(file_key)
+                table_subdirs.add(dir_key)
+
+        # For each subdirectory in the local output, purge the equivalent
+        # subdirectory in S3. This is to prevent stale files with different S3
+        # keys from hanging around and polluting our data in Athena
         paginator = self.session.s3_client.get_paginator("list_objects_v2")
-        for page in paginator.paginate(
-            Bucket=self.session.s3_bucket, Prefix=self.session.s3_prefix
-        ):
-            for obj in page.get("Contents", []):
-                # Strip the object prefix for comparison to local file key i.e.
-                # iasworld/addn/part-0.parquet becomes addn/part-0.parquet
-                obj_rel = Path(obj["Key"]).relative_to(self.session.s3_prefix)
-                s3_files.add(obj_rel.as_posix())
+        s3_files_to_delete = set()
+        for subdir in table_subdirs:
+            for page in paginator.paginate(
+                Bucket=self.session.s3_bucket,
+                Prefix=(s3_table_prefix / subdir).as_posix(),
+            ):
+                for obj in page.get("Contents", []):
+                    s3_files_to_delete.add(obj["Key"])
 
-        # List all files in the local output directory
-        local_files = set()
-        for local_path in local_dir.rglob("*.parquet"):
-            if local_path.is_file():
-                local_key = local_path.relative_to(local_dir).as_posix()
-                local_files.add(local_key)
-
-        # Upload all new local files, then remove them
-        for local_file in local_files:
-            local_path = local_dir / local_file
-            s3_key = f"{self.session.s3_prefix}/{local_file}"
-            self.session.s3_client.upload_file(
-                local_path.resolve().as_posix(), self.session.s3_bucket, s3_key
-            )
-
-        # Clear the output directory once all files have uploaded. This also
-        # cleans up the metadata, .crc, and _SUCCESS files from Spark
-        clear_directory(self.final_dir)
-
-        # Delete files in the S3 directory that are not in the local directory
-        files_to_delete = s3_files - local_files
-        if files_to_delete:
-            delete_objects = [
-                {"Key": f"{self.session.s3_prefix}/{key}"}
-                for key in files_to_delete
-            ]
+        if s3_files_to_delete:
+            delete_objects = [{"Key": f"{key}"} for key in s3_files_to_delete]
             self.session.s3_client.delete_objects(
                 Bucket=self.session.s3_bucket,
                 Delete={"Objects": delete_objects},
             )
+
+        # List all files in the local table directory to S3
+        for file in table_files:
+            local_file = (table_dir / file).resolve().as_posix()
+            s3_key = (s3_table_prefix / file).as_posix()
+            self.session.s3_client.upload_file(
+                local_file, self.session.s3_bucket, s3_key
+            )
+
+        # Purge the local output directories once all files have uploaded. This
+        # also cleans up the metadata, .crc, and _SUCCESS files from Spark
+        clear_directory(self.initial_dir)
+        clear_directory(self.final_dir)
