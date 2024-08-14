@@ -3,6 +3,7 @@ from datetime import datetime
 
 from joblib import Parallel, delayed
 from utils.helpers import load_job_definitions, load_predicates
+from utils.github import SharedGitHubSession
 from utils.spark import SharedSparkSession, SparkJob
 
 # Default values for jobs, used per job if not explicitly set in the job's
@@ -62,7 +63,6 @@ def main() -> str:
     session = SharedSparkSession(
         app_name=session_name,
         password_file_path=PATH_IPTS_PASSWORD,
-        gh_pem_path=PATH_GH_PEM,
     )
 
     # For each Spark job, get the table structure based on the job definition
@@ -126,8 +126,12 @@ def main() -> str:
     for job in jobs:
         job.upload()
 
-    # Trigger a GitHub workflow once all jobs are complete
-    session.run_gh_workflow()
+    # Trigger a GitHub workflow to run dbt tests once all jobs are complete
+    github = SharedGitHubSession(gh_pem_path=PATH_GH_PEM)
+    github.run_workflow(
+        repository="https://api.github.com/repos/ccao-data/data-architecture",
+        workflow="test_dbt_models.yaml",
+    )
 
     return session_name
 
