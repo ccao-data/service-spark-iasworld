@@ -42,8 +42,8 @@ services:
       - IPTS_PORT
       - IPTS_TABLE
       - GH_APP_ID
-      - GH_DBT_REPO
-      - GH_DBT_WORKFLOW
+      - GH_REPO
+      - GH_WORKFLOW
     ports:
       - 4040:4040
       - 8080:8080
@@ -74,8 +74,8 @@ services:
       - IPTS_PORT
       - IPTS_TABLE
       - GH_APP_ID
-      - GH_DBT_REPO
-      - GH_DBT_WORKFLOW
+      - GH_REPO
+      - GH_WORKFLOW
     ports:
       - 9090:9090
 

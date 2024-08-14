@@ -3,6 +3,7 @@ import time
 from pathlib import Path
 
 import jwt
+import requests
 
 
 def create_jwt_token(gh_app_id: str, gh_pem_path: str) -> str:
@@ -30,6 +31,43 @@ def create_jwt_token(gh_app_id: str, gh_pem_path: str) -> str:
     encoded_jwt = jwt_instance.encode(payload, signing_key, alg="RS256")
 
     return encoded_jwt
+
+
+def dispatch_gh_worfklow(gh_jwt: str, gh_repo: str, gh_workflow: str) -> None:
+    """
+    Dispatch a GitHub Actions workflow using the GitHub API.
+
+    Args:
+        gh_jwt: The JWT token for authentication with the GitHub API. Returned
+             by the `create_jwt_token` function.
+        gh_repo: API URL for the target repository containing a workflow.
+        gh_workflow: Workflow YAML file, relative to `.github/workflows`.
+    """
+
+    def create_headers(bearer: str) -> dict:
+        """Create headers with different bearers for the GitHub API requests"""
+        headers = {
+            "Accept": "application/vnd.github+json",
+            "Authorization": f"Bearer {bearer}",
+            "X-GitHub-Api-Version": "2022-11-28",
+        }
+        return headers
+
+    response = requests.get(
+        "https://api.github.com/app/installations",
+        headers=create_headers(gh_jwt),
+    )
+    gh_tokens_url = response.json()[0]["access_tokens_url"]
+
+    response = requests.post(gh_tokens_url, headers=create_headers(gh_jwt))
+    gh_token = response.json()["token"]
+
+    data = {"ref": "master"}
+    response = requests.post(
+        f"{gh_repo}/actions/workflows/{gh_workflow}/dispatches",
+        headers=create_headers(gh_token),
+        json=data,
+    )
 
 
 def load_job_definitions(

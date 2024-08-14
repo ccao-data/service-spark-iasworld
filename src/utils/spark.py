@@ -6,7 +6,11 @@ import boto3
 from pyarrow import dataset as ds
 from pyspark.sql import SparkSession
 
-from utils.helpers import create_jwt_token, strip_table_prefix
+from utils.helpers import (
+    create_jwt_token,
+    dispatch_gh_worfklow,
+    strip_table_prefix,
+)
 
 
 class SharedSparkSession:
@@ -28,8 +32,8 @@ class SharedSparkSession:
             from the above attributes.
         ipts_password: The password for the database, read from file.
         gh_app_id: GitHub Application ID for running a workflow.
-        gh_dbt_repo: API URL for the target repository containing a workflow.
-        gh_dbt_workflow: Workflow YAML file, relative to `.github/workflows`.
+        gh_repo: API URL for the target repository containing a workflow.
+        gh_workflow: Workflow YAML file, relative to `.github/workflows`.
         fetch_size: The fetch size for the database queries. This is a tuning
             parameter for query speed. ~10,000 seems to work best.
         initial_compression: The compression type for the initial Parquet files
@@ -64,8 +68,8 @@ class SharedSparkSession:
         # GitHub credentials for launching a target workflow once all jobs
         # are finished running
         self.gh_app_id = os.getenv("GH_APP_ID")
-        self.gh_dbt_repo = os.getenv("GH_DBT_REPO")
-        self.gh_dbt_workflow = os.getenv("GH_DBT_WORKFLOW")
+        self.gh_repo = os.getenv("GH_REPO")
+        self.gh_workflow = os.getenv("GH_WORKFLOW")
 
         # Load runtime secret using Compose secrets setup
         with open(self.password_file_path, "r") as file:
@@ -85,10 +89,10 @@ class SharedSparkSession:
 
         def run_dbt_workflow(self):
             """
-            Helper to trigger a GitHub Action workflow to build dbt models once
-            all Spark jobs have completed.
+            Method to run a GitHub Action workflow once all jobs are completed.
             """
-            create_jwt_token(self.gh_app_id, self.gh_pem_path)
+            jwt = create_jwt_token(self.gh_app_id, self.gh_pem_path)
+            dispatch_gh_worfklow(jwt, self.gh_repo, self.gh_workflow)
 
 
 class SparkJob:
