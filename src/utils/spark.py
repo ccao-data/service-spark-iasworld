@@ -1,11 +1,12 @@
 import os
+import shutil
 from pathlib import Path
 
 import boto3
 from pyarrow import dataset as ds
 from pyspark.sql import SparkSession
 
-from utils.helpers import clear_directory, strip_table_prefix
+from utils.helpers import strip_table_prefix
 
 
 class SharedSparkSession:
@@ -283,5 +284,5 @@ class SparkJob:
 
         # Purge the local output directories once all files have uploaded. This
         # also cleans up the metadata, .crc, and _SUCCESS files from Spark
-        clear_directory(self.initial_dir)
-        clear_directory(self.final_dir)
+        shutil.rmtree(self.initial_dir)
+        shutil.rmtree(self.final_dir)
