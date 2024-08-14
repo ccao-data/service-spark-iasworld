@@ -14,14 +14,10 @@ class SharedGitHubSession:
         Attributes:
             gh_pem_path: Container path to the GitHub certificate file.
             gh_app_id: GitHub Application ID for running a workflow.
-            gh_repo: API URL for the target repository containing a workflow.
-            gh_workflow: Workflow YAML file, relative to `.github/workflows`.
             gh_jwt: GitHub JSON Web Token for authenticating with the API.
         """
         self.gh_pem_path = gh_pem_path
         self.gh_app_id = os.getenv("GH_APP_ID")
-        self.gh_repo = os.getenv("GH_REPO")
-        self.gh_workflow = os.getenv("GH_WORKFLOW")
         self.gh_jwt = self.create_jwt_token()
 
     def create_jwt_token(self) -> str:
