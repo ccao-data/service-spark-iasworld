@@ -3,6 +3,7 @@ from datetime import datetime
 
 from joblib import Parallel, delayed
 from utils.helpers import load_job_definitions, load_predicates
+from utils.github import SharedGitHubSession
 from utils.spark import SharedSparkSession, SparkJob
 
 # Default values for jobs, used per job if not explicitly set in the job's
@@ -17,6 +18,7 @@ DEFAULT_VAR_PREDICATES_PATH = "default_predicates.sql"
 PATH_IPTS_PASSWORD = "/run/secrets/IPTS_PASSWORD"
 PATH_INITIAL_DIR = "/tmp/target/initial"
 PATH_FINAL_DIR = "/tmp/target/final"
+PATH_GH_PEM = "/run/secrets/GH_PEM"
 
 # Number of Spark read jobs to run in parallel. Limited to a small number just
 # so more jobs can start while single node jobs are running; most of the actual
@@ -59,7 +61,8 @@ def main() -> str:
     current_datetime = datetime.now().strftime("%Y-%m-%d_%H:%M:%S")
     session_name = f"iasworld_{current_datetime}"
     session = SharedSparkSession(
-        app_name=session_name, password_file_path=PATH_IPTS_PASSWORD
+        app_name=session_name,
+        password_file_path=PATH_IPTS_PASSWORD,
     )
 
     # For each Spark job, get the table structure based on the job definition
@@ -122,6 +125,13 @@ def main() -> str:
     # Upload extracted files to AWS S3 in Hive-partitioned Parquet
     for job in jobs:
         job.upload()
+
+    # Trigger a GitHub workflow to run dbt tests once all jobs are complete
+    github = SharedGitHubSession(gh_pem_path=PATH_GH_PEM)
+    github.run_workflow(
+        repository="https://api.github.com/repos/ccao-data/data-architecture",
+        workflow="test_dbt_models.yaml",
+    )
 
     return session_name
 
