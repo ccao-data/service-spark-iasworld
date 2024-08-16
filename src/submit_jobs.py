@@ -5,12 +5,14 @@ from datetime import datetime, timedelta
 from joblib import Parallel, delayed
 from utils.aws import AWSClient
 from utils.helpers import (
-    create_fallback_logger,
+    create_python_logger,
     load_job_definitions,
     load_predicates,
 )
 from utils.github import GitHubClient
 from utils.spark import SharedSparkSession, SparkJob
+
+logger = create_python_logger(__name__)
 
 # Default values for jobs, used per job if not explicitly set in the job's
 # input JSON. CUR and YEAR values are used for partitioning and filtering
@@ -57,7 +59,6 @@ def parse_args():
 
 def submit_jobs(
     app_name: str,
-    log_file_path: str,
     json_file: str | None = None,
     json_string: str | None = None,
 ) -> None:
@@ -67,7 +68,6 @@ def submit_jobs(
     Args:
         app_name: Name of the job batch. Shown in the Spark UI and used as
             the logstream name in CloudWatch.
-        log_file_path: String path to the log file for this job.
         json_file: Path to a JSON file containing job configuration(s).
         json_string: JSON string containing job configuration(s).
     """
@@ -79,14 +79,13 @@ def submit_jobs(
     # credentialing, retries, etc.
     session = SharedSparkSession(
         app_name=app_name,
-        log_file_path=log_file_path,
         password_file_path=PATH_IPTS_PASSWORD,
     )
 
     # Perform some startup logging before entering the main job loop
     table_names = [i.get("table_name") for i in job_definitions.values()]
-    session.logger.info(f"Starting Spark session {app_name}")
-    session.logger.info(f"Extracting tables: {', '.join(table_names)}")
+    logger.info(f"Starting Spark session {app_name}")
+    logger.info(f"Extracting tables: {', '.join(table_names)}")
 
     # For each Spark job, get the table structure based on the job definition
     # or defaults. Then, perform the JDBC read of the job to extract data.
@@ -137,7 +136,7 @@ def submit_jobs(
 
     # Stop the Spark session once all JDBC reads are complete. This is CRITICAL
     # as it frees all memory from the cluster for use in the repartition step
-    session.logger.info("All extractions complete, shutting down Spark")
+    logger.info("All extractions complete, shutting down Spark")
     session.spark.stop()
 
     # Use PyArrow to condense the many small Parquet files created by the reads
@@ -147,7 +146,7 @@ def submit_jobs(
         job.repartition()
 
     # Upload extracted files to AWS S3 in Hive-partitioned Parquet
-    aws = AWSClient(logger=session.logger)
+    aws = AWSClient()
     new_local_files = []
     for job in jobs:
         job_upload_results = job.upload(aws)
@@ -155,7 +154,7 @@ def submit_jobs(
 
     # If any jobs uploaded never-seen-before files, trigger a Glue crawler
     if new_local_files:
-        session.logger.info(
+        logger.info(
             (
                 f"{len(new_local_files)} previously unseen files uploaded to S3, "
                 "triggering Glue crawler"
@@ -164,8 +163,8 @@ def submit_jobs(
         aws.run_and_wait_for_crawler("ccao-data-warehouse-iasworld-crawler")
 
     # Trigger a GitHub workflow to run dbt tests once all jobs are complete
-    session.logger.info("All file uploads complete, triggering dbt tests")
-    github = GitHubClient(logger=session.logger, gh_pem_path=PATH_GH_PEM)
+    logger.info("All file uploads complete, triggering dbt tests")
+    github = GitHubClient(gh_pem_path=PATH_GH_PEM)
     github.run_workflow(
         repository="https://api.github.com/repos/ccao-data/data-architecture",
         workflow="test_dbt_models.yaml",
@@ -173,29 +172,27 @@ def submit_jobs(
 
     # Print table names for extracted tables and total elapsed time. The
     # get_description() call is to print the description of each table to logs
-    session.logger.info(f"Extracted tables: {', '.join(table_names)}")
+    logger.info(f"Extracted tables: {', '.join(table_names)}")
     for job in jobs:
         job.get_description()
 
     time_end = time.time()
     time_duration = str(timedelta(seconds=(time_end - time_start)))
-    session.logger.info(f"Total extraction duration was {time_duration}")
+    logger.info(f"Total extraction duration was {time_duration}")
 
 
 if __name__ == "__main__":
     current_datetime = datetime.now().strftime("%Y-%m-%d_%H:%M:%S")
     app_name = f"iasworld_{current_datetime}"
-    log_file_path = f"/tmp/logs/{app_name}.log"
-    fallback_logger = create_fallback_logger(log_file_path)
     args = parse_args()
     try:
-        submit_jobs(app_name, log_file_path, args.json_file, args.json_string)
+        submit_jobs(app_name, args.json_file, args.json_string)
     except Exception as e:
-        fallback_logger.error(e)
+        logger.error(e)
 
-    aws = AWSClient(logger=fallback_logger)
+    aws = AWSClient()
     aws.upload_logs_to_cloudwatch(
         log_group_name="/ccao/jobs/spark",
         log_stream_name=app_name,
-        log_file_path=log_file_path,
+        log_file_path="/tmp/logs/spark.log",
     )

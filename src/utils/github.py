@@ -1,25 +1,25 @@
 import os
-import logging
 import time
 
 import jwt
 import requests
 
+from utils.helpers import create_python_logger
+
+logger = create_python_logger(__name__)
+
 
 class GitHubClient:
-    def __init__(self, logger: logging.Logger, gh_pem_path: str) -> None:
+    def __init__(self, gh_pem_path: str) -> None:
         """
         Class to generate and store the credentials associated with GitHub,
         along with methods to dispatch a GitHub Actions workflow.
 
         Attributes:
-            logger: Spark session logger that outputs to shared file in the
-                same format.
             gh_pem_path: Container path to the GitHub certificate file.
             gh_app_id: GitHub Application ID for running a workflow.
             gh_jwt: GitHub JSON Web Token for authenticating with the API.
         """
-        self.logger = logger
         self.gh_pem_path = gh_pem_path
         self.gh_app_id = os.getenv("GH_APP_ID")
         self.gh_jwt = self.create_jwt_token()
@@ -86,7 +86,7 @@ class GitHubClient:
                     json=data,
                 )
                 response.raise_for_status()
-                self.logger.info(f"GH workflow triggered: {workflow}")
+                logger.info(f"GH workflow triggered: {workflow}")
 
             except Exception as e:
-                self.logger.error(f"GitHub workflow run failed: {e}")
+                logger.error(f"GitHub workflow run failed: {e}")

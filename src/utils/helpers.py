@@ -3,14 +3,17 @@ import logging
 from pathlib import Path
 
 
-def create_fallback_logger(log_file: str) -> logging.Logger:
+def create_python_logger(
+    name: str, log_file_path: str = "/tmp/logs/spark.log"
+) -> logging.Logger:
     """
     Sets up a logger with the same output format and location as the primary
-    Spark logger from the JVM. Used as a fallback in case any part of the
+    Spark logger from the JVM. Also used as a fallback in case any part of the
     main job loop fails.
 
     Args:
-        log_file: String path to the log file where logs will be written.
+        name: Module name to use for the logger.
+        log_file_path: String path to the log file where logs will be written.
 
     Returns:
         logging.Logger: Generic logger with the same log format as Spark.
@@ -32,10 +35,10 @@ def create_fallback_logger(log_file: str) -> logging.Logger:
         datefmt="%d/%m/%y %H:%M:%S",
     )
 
-    logger = logging.getLogger(__name__)
+    logger = logging.getLogger(name)
     logger.setLevel(logging.INFO)
 
-    file_handler = logging.FileHandler(log_file, mode="a")
+    file_handler = logging.FileHandler(log_file_path, mode="a")
     file_handler.setFormatter(file_formatter)
     stream_handler = logging.StreamHandler()
     stream_handler.setFormatter(stdout_formatter)

@@ -1,27 +1,27 @@
-import logging
 import os
 import time
 from datetime import datetime
 
 import boto3
 
+from utils.helpers import create_python_logger
+
+logger = create_python_logger(__name__)
+
 
 class AWSClient:
-    def __init__(self, logger: logging.Logger):
+    def __init__(self):
         """
         Class to store AWS clients and methods for various AWS actions. Clients
         are instantiated from AWS credentials passed via Compose secrets.
 
         Attributes:
-            logger: Spark session logger that outputs to shared file in the
-                same format.
             logs_client: Glue client connection for running crawlers.
             glue_client: CloudWatch logs connection for uploading logs.
             s3_client: S3 client connection for uploading extracted files.
             s3_bucket: S3 bucket to upload extracts to.
             s3_prefix: S3 path prefix within S3 bucket. Defaults to "iasworld".
         """
-        self.logger = logger
         self.logs_client = boto3.client("logs")
         self.glue_client = boto3.client("glue")
         self.s3_client = boto3.client("s3")
@@ -31,10 +31,10 @@ class AWSClient:
     def run_and_wait_for_crawler(self, crawler_name) -> None:
         initial_response = self.glue_client.get_crawler(Name=crawler_name)
         if initial_response["Crawler"]["State"] == "READY":  # type: ignore
-            self.logger.info(f"Starting AWS Glue crawler {crawler_name}")
+            logger.info(f"Starting AWS Glue crawler {crawler_name}")
             self.glue_client.start_crawler(Name=crawler_name)
         else:
-            self.logger.warn(
+            logger.warning(
                 f"AWS Glue crawler {crawler_name} is already running"
             )
             return
@@ -48,11 +48,11 @@ class AWSClient:
             response = self.glue_client.get_crawler(Name=crawler_name)
             state = response["Crawler"]["State"]  # type: ignore
             if state in ["READY", "STOPPING"]:
-                self.logger.info(f"Crawler {crawler_name} has finished")
+                logger.info(f"Crawler {crawler_name} has finished")
                 job_complete = True
                 break
             elif state == "RUNNING":
-                self.logger.info(
+                logger.info(
                     (
                         f"Crawler {crawler_name} is running: "
                         f"{time_elapsed}s elapsed"
@@ -61,7 +61,7 @@ class AWSClient:
             time.sleep(time_increment)
             time_elapsed += time_increment
         if not job_complete:
-            self.logger.warn(
+            logger.warning(
                 (
                     f"Crawler {crawler_name} was still running after the {timeout}s"
                     f"timeout; continuing execution without confirming its status"

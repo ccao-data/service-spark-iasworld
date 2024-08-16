@@ -8,7 +8,9 @@ from pyarrow import dataset as ds
 from pyspark.sql import SparkSession
 
 from utils.aws import AWSClient
-from utils.helpers import strip_table_prefix
+from utils.helpers import create_python_logger, strip_table_prefix
+
+logger = create_python_logger(__name__)
 
 
 class SharedSparkSession:
@@ -36,13 +38,9 @@ class SharedSparkSession:
         final_compression: The compression type final repartitioned Parquet
             files. Defaults to ztd.
         spark: The Spark session object.
-        log_file_path: The path to the log file for the Spark session.
-        logger: The logger object for the Spark session.
     """
 
-    def __init__(
-        self, app_name: str, log_file_path: str, password_file_path: str
-    ) -> None:
+    def __init__(self, app_name: str, password_file_path: str) -> None:
         self.app_name = app_name
         self.password_file_path = password_file_path
 
@@ -69,21 +67,19 @@ class SharedSparkSession:
 
         # Create the Spark session and logging
         self.spark = SparkSession.builder.appName(self.app_name).getOrCreate()
-        self.log_file_path = log_file_path
-        self.logger = self.get_logger()
+        self.create_spark_logger()
 
-    def get_logger(self):
+    def create_spark_logger(
+        self, log_file_path: str = "/tmp/logs/spark.log"
+    ) -> None:
         """
-        Extract the logger from the JVM used by Spark. We can send Python
-        logging messages here with the same format. Also writes to a file.
+        Extract the logger from the JVM used by Spark, then modify it to write
+        to the same log file used by the Python logger.
         """
         # Get Spark logger. See https://stackoverflow.com/a/72740559
         log4j = self.spark.sparkContext._jvm.org.apache.log4j
         spark_logger = log4j.LogManager.getLogger("org.apache.spark")
 
-        # Create a file appender to write to write to a session log file
-        appender = log4j.FileAppender()
-        appender.setAppend(True)
         # For some reason it's necessary to set the log pattern, even though
         # the format string replicates the default format used by Spark, with
         # the addition of milliseconds
@@ -91,8 +87,12 @@ class SharedSparkSession:
         layout.setConversionPattern(
             "%d{yyyy-MM-dd_HH:mm:ss.SSS} %p %c{1}: %m%n"
         )
+
+        # Create a file appender to write to a session log file
+        appender = log4j.FileAppender()
+        appender.setAppend(True)
         appender.setLayout(layout)
-        appender.setFile(self.log_file_path)
+        appender.setFile(log_file_path)
         appender.activateOptions()
 
         spark_logger.removeAllAppenders()
@@ -156,9 +156,7 @@ class SparkJob:
         if self.cur:
             desc.append(f"cur=[{', '.join(self.cur)}]")
 
-        self.session.logger.info(
-            f"Table {self.table_name} description: {', '.join(desc)}"
-        )
+        logger.info(f"Table {self.table_name} description: {', '.join(desc)}")
 
         return ", ".join(desc)
 
@@ -175,9 +173,7 @@ class SparkJob:
             filter.append(f"cur IN ({', '.join(quoted_cur)})")
 
         filter_join = " AND ".join(filter)
-        self.session.logger.info(
-            f"Table {self.table_name} filter: {filter_join}"
-        )
+        logger.info(f"Table {self.table_name} filter: {filter_join}")
 
         return filter_join if filter != [] else None
 
@@ -191,7 +187,7 @@ class SparkJob:
             partitions.append("taxyr")
         if self.cur:
             partitions.append("cur")
-        self.session.logger.info(
+        logger.info(
             f"Table {self.table_name} partitions: {', '.join(partitions)}"
         )
 
@@ -239,9 +235,7 @@ class SparkJob:
 
         time_end = time.time()
         time_duration = str(timedelta(seconds=(time_end - time_start)))
-        self.session.logger.info(
-            f"Table {self.table_name} extracted in {time_duration}"
-        )
+        logger.info(f"Table {self.table_name} extracted in {time_duration}")
 
     def repartition(self) -> None:
         """
@@ -283,7 +277,7 @@ class SparkJob:
 
         time_end = time.time()
         time_duration = str(timedelta(seconds=(time_end - time_start)))
-        self.session.logger.info(
+        logger.info(
             f"Table {self.table_name} repartitioned in {time_duration}"
         )
 
@@ -343,7 +337,7 @@ class SparkJob:
                 Bucket=aws.s3_bucket,
                 Delete={"Objects": delete_objects},
             )
-            self.session.logger.info(
+            logger.info(
                 (
                     f"Table {self.table_name} deleting files: "
                     f"{', '.join(map(lambda p: p.as_posix(), s3_files_to_delete))}"
@@ -351,7 +345,7 @@ class SparkJob:
             )
 
         # List all files in the local table directory to S3
-        self.session.logger.info(
+        logger.info(
             f"Table {self.table_name} uploading {len(table_files)} files"
         )
         for file in table_files:
@@ -370,9 +364,7 @@ class SparkJob:
 
         time_end = time.time()
         time_duration = str(timedelta(seconds=(time_end - time_start)))
-        self.session.logger.info(
-            f"Table {self.table_name} uploaded in {time_duration}"
-        )
+        logger.info(f"Table {self.table_name} uploaded in {time_duration}")
 
         new_local_files = [f.as_posix() for f in list(table_files - s3_files)]
         return new_local_files
