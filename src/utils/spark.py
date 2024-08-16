@@ -8,7 +8,11 @@ from pyarrow import dataset as ds
 from pyspark.sql import SparkSession
 
 from utils.aws import AWSClient
-from utils.helpers import create_python_logger, strip_table_prefix
+from utils.helpers import (
+    PATH_SPARK_LOG,
+    create_python_logger,
+    strip_table_prefix,
+)
 
 logger = create_python_logger(__name__)
 
@@ -69,9 +73,7 @@ class SharedSparkSession:
         self.spark = SparkSession.builder.appName(self.app_name).getOrCreate()
         self.create_spark_logger()
 
-    def create_spark_logger(
-        self, log_file_path: str = "/tmp/logs/spark.log"
-    ) -> None:
+    def create_spark_logger(self, log_file_path: str = PATH_SPARK_LOG) -> None:
         """
         Extract the logger from the JVM used by Spark, then modify it to write
         to the same log file used by the Python logger.

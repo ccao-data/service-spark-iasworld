@@ -4,12 +4,13 @@ from datetime import datetime, timedelta
 
 from joblib import Parallel, delayed
 from utils.aws import AWSClient
+from utils.github import GitHubClient
 from utils.helpers import (
+    PATH_SPARK_LOG,
     create_python_logger,
     load_job_definitions,
     load_predicates,
 )
-from utils.github import GitHubClient
 from utils.spark import SharedSparkSession, SparkJob
 
 logger = create_python_logger(__name__)
@@ -193,5 +194,5 @@ if __name__ == "__main__":
     aws.upload_logs_to_cloudwatch(
         log_group_name="/ccao/jobs/spark",
         log_stream_name=app_name,
-        log_file_path="/tmp/logs/spark.log",
+        log_file_path=PATH_SPARK_LOG,
     )
