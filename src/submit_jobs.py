@@ -151,9 +151,12 @@ def main():
         workflow="test_dbt_models.yaml",
     )
 
-    # Print job descriptions for extracted tables and total elapsed time
-    job_descriptions = list(map(lambda j: j.get_description(), jobs))
-    session.logger.info(f"Extracted tables: {' | '.join(job_descriptions)}")
+    # Print table names for extracted tables and total elapsed time. The
+    # get_description() call is to print the description of each table to logs
+    session.logger.info(f"Extracted tables: {', '.join(table_names)}")
+    for job in jobs:
+        job.get_description()
+
     time_end = time.time()
     time_duration = str(timedelta(seconds=(time_end - time_start)))
     session.logger.info(f"Total extraction duration was {time_duration}")
