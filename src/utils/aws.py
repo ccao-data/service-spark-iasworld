@@ -42,11 +42,14 @@ class AWSClient:
         # Wait for the crawler to complete before triggering dbt tests
         time_elapsed = 0
         time_increment = 30
-        while True:
+        timeout = 1200  # 20 minute timeout
+        job_complete = False
+        while time_elapsed < timeout:
             response = self.glue_client.get_crawler(Name=crawler_name)
             state = response["Crawler"]["State"]  # type: ignore
             if state in ["READY", "STOPPING"]:
                 self.logger.info(f"Crawler {crawler_name} has finished")
+                job_complete = True
                 break
             elif state == "RUNNING":
                 self.logger.info(
@@ -57,6 +60,11 @@ class AWSClient:
                 )
             time.sleep(time_increment)
             time_elapsed += time_increment
+        if not job_complete:
+            self.logger.warn(
+                f"Crawler {crawler_name} was still running after the {timeout}s polling timeout; "
+                "continuing execution without confirming its status"
+            )
 
     def upload_logs_to_cloudwatch(
         self, log_group_name: str, log_stream_name: str, log_file_path: str
