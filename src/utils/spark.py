@@ -238,7 +238,7 @@ class SparkJob:
         time_end = time.time()
         time_duration = str(timedelta(seconds=(time_end - time_start)))
         self.session.logger.info(
-            f"Table {self.table_name} finished extract in {time_duration}"
+            f"Table {self.table_name} extracted in {time_duration}"
         )
 
     def repartition(self) -> None:
@@ -369,7 +369,7 @@ class SparkJob:
         time_end = time.time()
         time_duration = str(timedelta(seconds=(time_end - time_start)))
         self.session.logger.info(
-            f"Table {self.table_name} finished upload in {time_duration}"
+            f"Table {self.table_name} uploaded in {time_duration}"
         )
 
         return bool(table_files - s3_files)

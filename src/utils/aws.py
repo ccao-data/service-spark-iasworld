@@ -40,8 +40,8 @@ class AWSClient:
             return
 
         # Wait for the crawler to complete before triggering dbt tests
-        time_start = time.time()
-        time_elapsed = 0.0
+        time_elapsed = 0
+        time_increment = 30
         while True:
             response = self.glue_client.get_crawler(Name=crawler_name)
             state = response["Crawler"]["State"]  # type: ignore
@@ -52,11 +52,11 @@ class AWSClient:
                 self.logger.info(
                     (
                         f"Crawler {crawler_name} is running: "
-                        f"{round(time_elapsed, 0)}s elapsed"
+                        f"{time_elapsed}s elapsed"
                     )
                 )
-            time.sleep(30)
-            time_elapsed += time.time() - time_start
+            time.sleep(time_increment)
+            time_elapsed += time_increment
 
     def upload_logs_to_cloudwatch(
         self, log_group_name: str, log_stream_name: str, log_file_path: str
