@@ -89,4 +89,4 @@ class GitHubClient:
                 self.logger.info(f"GH workflow triggered: {workflow}")
 
             except Exception as e:
-                self.logger.error(f"GH workflow run failed: {e}")
+                self.logger.error(f"GitHub workflow run failed: {e}")
