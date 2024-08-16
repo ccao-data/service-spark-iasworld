@@ -222,6 +222,8 @@ if __name__ == "__main__":
     current_datetime = datetime.now().strftime("%Y-%m-%d_%H:%M:%S")
     app_name = f"iasworld_{current_datetime}"
     args = parse_args()
+    logger.info(f"Starting Spark application with arguments: {args}")
+
     try:
         submit_jobs(
             app_name=app_name,
