@@ -1,5 +1,7 @@
 import os
 import shutil
+import time
+from datetime import timedelta
 from pathlib import Path
 
 import boto3
@@ -157,6 +159,10 @@ class SparkJob:
         if self.cur:
             desc.append(f"cur=[{', '.join(self.cur)}]")
 
+        self.session.logger.info(
+            f"Table {self.table_name} description: {', '.join(desc)}"
+        )
+
         return ", ".join(desc)
 
     def get_filter(self) -> str | None:
@@ -171,7 +177,12 @@ class SparkJob:
             quoted_cur = [f"'{x}'" for x in self.cur]
             filter.append(f"cur IN ({', '.join(quoted_cur)})")
 
-        return " AND ".join(filter) if filter else None
+        filter_join = " AND ".join(filter)
+        self.session.logger.info(
+            f"Table {self.table_name} filter: {filter_join}"
+        )
+
+        return filter_join if filter != [] else None
 
     def get_partitions(self) -> list[str]:
         """
@@ -183,6 +194,9 @@ class SparkJob:
             partitions.append("taxyr")
         if self.cur:
             partitions.append("cur")
+        self.session.logger.info(
+            f"Table {self.table_name} partitions: {', '.join(partitions)}"
+        )
 
         return partitions
 
@@ -191,6 +205,8 @@ class SparkJob:
         Perform the JDBC read and the initial file write to disk. Files will be
         partitioned by the number of predicates (96 by default).
         """
+
+        time_start = time.time()
         description = self.get_description()
         filter = self.get_filter()
         partitions = self.get_partitions()
@@ -224,6 +240,12 @@ class SparkJob:
             .parquet(self.initial_dir)
         )
 
+        time_end = time.time()
+        time_duration = str(timedelta(seconds=(time_end - time_start)))
+        self.session.logger.info(
+            f"Table {self.table_name} finished extract in {time_duration}"
+        )
+
     def repartition(self) -> None:
         """
         After the initial read, there will be many small Parquet files. This
@@ -240,6 +262,7 @@ class SparkJob:
             [140K] /tmp/target/final/addn/taxyr=2020/cur=Y/part-0.zstd.parquet
         """
 
+        time_start = time.time()
         dataset = ds.dataset(
             source=self.initial_dir,
             format="parquet",
@@ -261,6 +284,12 @@ class SparkJob:
             max_rows_per_file=5 * 10**6,
         )
 
+        time_end = time.time()
+        time_duration = str(timedelta(seconds=(time_end - time_start)))
+        self.session.logger.info(
+            f"Table {self.table_name} repartitioned in {time_duration}"
+        )
+
     def upload(self) -> None:
         """
         Upload the final partitioned Parquet files to S3. This clears the
@@ -268,6 +297,8 @@ class SparkJob:
         to prevent orphan files. It also clears the local directory for the
         table on completion.
         """
+
+        time_start = time.time()
         table_dir = Path(self.final_dir)
         s3_root_prefix = Path(self.session.s3_prefix)
         s3_table_prefix = s3_root_prefix / strip_table_prefix(self.table_name)
@@ -309,8 +340,17 @@ class SparkJob:
                 Bucket=self.session.s3_bucket,
                 Delete={"Objects": delete_objects},
             )
+            self.session.logger.info(
+                (
+                    f"Table {self.table_name} deleting files: ",
+                    f"{', '.join(map(lambda p: p.as_posix(), s3_files_to_delete))}",
+                )
+            )
 
         # List all files in the local table directory to S3
+        self.session.logger.info(
+            f"Table {self.table_name} uploading {len(table_files)} files"
+        )
         for file in table_files:
             local_file = table_dir / file
             s3_key = s3_table_prefix / file
@@ -324,3 +364,12 @@ class SparkJob:
         # also cleans up the metadata, .crc, and _SUCCESS files from Spark
         shutil.rmtree(self.initial_dir)
         shutil.rmtree(self.final_dir)
+        self.session.logger.info(
+            f"Table {self.table_name} clearing local directories"
+        )
+
+        time_end = time.time()
+        time_duration = str(timedelta(seconds=(time_end - time_start)))
+        self.session.logger.info(
+            f"Table {self.table_name} finished upload in {time_duration}"
+        )

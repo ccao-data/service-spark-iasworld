@@ -1,5 +1,6 @@
 import argparse
-from datetime import datetime
+import time
+from datetime import datetime, timedelta
 
 from joblib import Parallel, delayed
 from utils.helpers import load_job_definitions, load_predicates
@@ -49,8 +50,9 @@ def parse_args():
     return parser.parse_args()
 
 
-def main() -> str:
+def main():
     # Get the job definition(s) from the argument JSON
+    time_start = time.time()
     args = parse_args()
     job_definitions = load_job_definitions(
         json_file=args.json_file, json_string=args.json_string
@@ -64,6 +66,11 @@ def main() -> str:
         app_name=session_name,
         password_file_path=PATH_IPTS_PASSWORD,
     )
+
+    # Perform some startup logging before entering the main job loop
+    table_names = [i.get("table_name") for i in job_definitions.values()]
+    session.logger.info(f"Starting Spark session {session_name}")
+    session.logger.info(f"Extracting tables: {', '.join(table_names)}")
 
     # For each Spark job, get the table structure based on the job definition
     # or defaults. Then, perform the JDBC read of the job to extract data.
@@ -114,6 +121,7 @@ def main() -> str:
 
     # Stop the Spark session once all JDBC reads are complete. This is CRITICAL
     # as it frees all memory from the cluster for use in the repartition step
+    session.logger.info("All extractions complete, shutting down Spark")
     session.spark.stop()
 
     # Use PyArrow to condense the many small Parquet files created by the reads
@@ -127,13 +135,17 @@ def main() -> str:
         job.upload()
 
     # Trigger a GitHub workflow to run dbt tests once all jobs are complete
+    session.logger.info("All file uploads complete, triggering dbt tests")
     github = SharedGitHubSession(gh_pem_path=PATH_GH_PEM)
     github.run_workflow(
         repository="https://api.github.com/repos/ccao-data/data-architecture",
         workflow="test_dbt_models.yaml",
     )
 
-    return session_name
+    session.logger.info(f"Extracted tables: {', '.join(table_names)}")
+    time_end = time.time()
+    time_duration = str(timedelta(seconds=(time_end - time_start)))
+    session.logger.info(f"Total extraction duration was {time_duration}")
 
 
 if __name__ == "__main__":
