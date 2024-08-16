@@ -4,8 +4,12 @@ import time
 import jwt
 import requests
 
+from utils.helpers import create_python_logger
 
-class SharedGitHubSession:
+logger = create_python_logger(__name__)
+
+
+class GitHubClient:
     def __init__(self, gh_pem_path: str) -> None:
         """
         Class to generate and store the credentials associated with GitHub,
@@ -61,20 +65,28 @@ class SharedGitHubSession:
             return headers
 
         if self.gh_app_id and self.gh_pem_path:
-            response = requests.get(
-                "https://api.github.com/app/installations",
-                headers=create_headers(self.gh_jwt),
-            )
-            gh_tokens_url = response.json()[0]["access_tokens_url"]
+            try:
+                response = requests.get(
+                    "https://api.github.com/app/installations",
+                    headers=create_headers(self.gh_jwt),
+                )
+                response.raise_for_status()
+                gh_tokens_url = response.json()[0]["access_tokens_url"]
 
-            response = requests.post(
-                gh_tokens_url, headers=create_headers(self.gh_jwt)
-            )
-            gh_token = response.json()["token"]
+                response = requests.post(
+                    gh_tokens_url, headers=create_headers(self.gh_jwt)
+                )
+                response.raise_for_status()
+                gh_token = response.json()["token"]
 
-            data = {"ref": "master"}
-            response = requests.post(
-                f"{repository}/actions/workflows/{workflow}/dispatches",
-                headers=create_headers(gh_token),
-                json=data,
-            )
+                data = {"ref": "master"}
+                response = requests.post(
+                    f"{repository}/actions/workflows/{workflow}/dispatches",
+                    headers=create_headers(gh_token),
+                    json=data,
+                )
+                response.raise_for_status()
+                logger.info(f"GitHub workflow triggered: {workflow}")
+
+            except Exception as e:
+                logger.error(f"GitHub workflow run failed: {e}")

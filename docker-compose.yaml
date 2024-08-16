@@ -12,6 +12,7 @@ x-default: &node
     - ./config:/tmp/config:ro
     - ./config/spark-defaults.conf:/opt/bitnami/spark/conf/spark-defaults.conf:ro
     - ./target:/tmp/target:rw
+    - ./logs:/tmp/logs:rw
   secrets:
     - AWS_CREDENTIALS
     - GH_PEM

@@ -1,12 +1,20 @@
 import os
 import shutil
+import time
+from datetime import timedelta
 from pathlib import Path
 
-import boto3
 from pyarrow import dataset as ds
 from pyspark.sql import SparkSession
 
-from utils.helpers import strip_table_prefix
+from utils.aws import AWSClient
+from utils.helpers import (
+    PATH_SPARK_LOG,
+    create_python_logger,
+    strip_table_prefix,
+)
+
+logger = create_python_logger(__name__)
 
 
 class SharedSparkSession:
@@ -33,9 +41,6 @@ class SharedSparkSession:
             written via JDBC extract. Defaults to snappy.
         final_compression: The compression type final repartitioned Parquet
             files. Defaults to ztd.
-        s3_client: S3 client connection. Instantiated from secrets file.
-        s3_bucket: S3 bucket to upload extracts to.
-        s3_prefix: S3 path prefix within S3 bucket. Defaults to "iasworld".
         spark: The Spark session object.
     """
 
@@ -64,12 +69,37 @@ class SharedSparkSession:
         self.initial_compression = "snappy"
         self.final_compression = "zstd"
 
-        # Store S3 details so workers can upload finished jobs
-        self.s3_client = boto3.client("s3")
-        self.s3_bucket = os.getenv("AWS_S3_BUCKET")
-        self.s3_prefix = os.getenv("AWS_S3_PREFIX", "iasworld")
-
+        # Create the Spark session and logging
         self.spark = SparkSession.builder.appName(self.app_name).getOrCreate()
+        self.create_spark_logger()
+
+    def create_spark_logger(self, log_file_path: str = PATH_SPARK_LOG) -> None:
+        """
+        Extract the logger from the JVM used by Spark, then modify it to write
+        to the same log file used by the Python logger.
+        """
+        # Get Spark logger. See https://stackoverflow.com/a/72740559
+        log4j = self.spark.sparkContext._jvm.org.apache.log4j
+        spark_logger = log4j.LogManager.getLogger("org.apache.spark")
+
+        # For some reason it's necessary to set the log pattern, even though
+        # the format string replicates the default format used by Spark, with
+        # the addition of milliseconds
+        layout = log4j.PatternLayout()
+        layout.setConversionPattern(
+            "%d{yyyy-MM-dd_HH:mm:ss.SSS} %p %c{1}: %m%n"
+        )
+
+        # Create a file appender to write to a session log file
+        appender = log4j.FileAppender()
+        appender.setAppend(True)
+        appender.setLayout(layout)
+        appender.setFile(log_file_path)
+        appender.activateOptions()
+
+        spark_logger.removeAllAppenders()
+        spark_logger.addAppender(appender)
+        return spark_logger
 
 
 class SparkJob:
@@ -142,7 +172,9 @@ class SparkJob:
             quoted_cur = [f"'{x}'" for x in self.cur]
             filter.append(f"cur IN ({', '.join(quoted_cur)})")
 
-        return " AND ".join(filter) if filter else None
+        filter_join = " AND ".join(filter)
+
+        return filter_join if filter != [] else None
 
     def get_partitions(self) -> list[str]:
         """
@@ -162,9 +194,20 @@ class SparkJob:
         Perform the JDBC read and the initial file write to disk. Files will be
         partitioned by the number of predicates (96 by default).
         """
+
+        time_start = time.time()
         description = self.get_description()
         filter = self.get_filter()
         partitions = self.get_partitions()
+
+        # Create a block of log messages at the start of each job
+        logger.info(f"Table {self.table_name} description: {description}")
+        if partitions:
+            logger.info(
+                f"Table {self.table_name} partitions: {', '.join(partitions)}"
+            )
+        if filter:
+            logger.info(f"Table {self.table_name} filter: {filter}")
 
         # Must use the JDBC read method here since the normal spark.read()
         # doesn't accept predicates https://stackoverflow.com/a/48680140
@@ -195,6 +238,10 @@ class SparkJob:
             .parquet(self.initial_dir)
         )
 
+        time_end = time.time()
+        time_duration = str(timedelta(seconds=(time_end - time_start)))
+        logger.info(f"Table {self.table_name} extracted in {time_duration}")
+
     def repartition(self) -> None:
         """
         After the initial read, there will be many small Parquet files. This
@@ -210,6 +257,12 @@ class SparkJob:
 
             [140K] /tmp/target/final/addn/taxyr=2020/cur=Y/part-0.zstd.parquet
         """
+
+        time_start = time.time()
+        partitions = self.get_partitions()
+        parts = ", ".join(self.get_partitions()) if partitions else "None"
+        logger.info(f"Table {self.table_name} repartitioning with: {parts}")
+
         dataset = ds.dataset(
             source=self.initial_dir,
             format="parquet",
@@ -231,15 +284,29 @@ class SparkJob:
             max_rows_per_file=5 * 10**6,
         )
 
-    def upload(self) -> None:
+        time_end = time.time()
+        time_duration = str(timedelta(seconds=(time_end - time_start)))
+        logger.info(
+            f"Table {self.table_name} repartitioned in {time_duration}"
+        )
+
+    def upload(self, aws: AWSClient) -> list[str]:
         """
         Upload the final partitioned Parquet files to S3. This clears the
         remote S3 equivalent of each local partition prior to upload in order
         to prevent orphan files. It also clears the local directory for the
         table on completion.
+
+        Args:
+            aws: AWS client class container S3 connection/location details.
+
+        Returns:
+            list[str]: List of previously unseen files uploaded to S3.
         """
+
+        time_start = time.time()
         table_dir = Path(self.final_dir)
-        s3_root_prefix = Path(self.session.s3_prefix)
+        s3_root_prefix = Path(aws.s3_prefix)
         s3_table_prefix = s3_root_prefix / strip_table_prefix(self.table_name)
 
         # List all files and directories in the local table output directory
@@ -258,11 +325,11 @@ class SparkJob:
         # subdirectory in S3 of any files that won't be replaced by new uploads.
         # This is to prevent stale files with different S3 keys from hanging
         # around and polluting our data in Athena
-        paginator = self.session.s3_client.get_paginator("list_objects_v2")
+        paginator = aws.s3_client.get_paginator("list_objects_v2")
         s3_files = set()
         for subdir in table_subdirs:
             for page in paginator.paginate(
-                Bucket=self.session.s3_bucket,
+                Bucket=aws.s3_bucket,
                 Prefix=(s3_table_prefix / subdir).as_posix(),
             ):
                 for obj in page.get("Contents", []):
@@ -275,18 +342,27 @@ class SparkJob:
                 {"Key": f"{s3_table_prefix.as_posix()}/{key.as_posix()}"}
                 for key in s3_files_to_delete
             ]
-            self.session.s3_client.delete_objects(
-                Bucket=self.session.s3_bucket,
+            aws.s3_client.delete_objects(
+                Bucket=aws.s3_bucket,
                 Delete={"Objects": delete_objects},
+            )
+            logger.info(
+                (
+                    f"Table {self.table_name} deleting files: "
+                    f"{', '.join(map(lambda p: p.as_posix(), s3_files_to_delete))}"
+                )
             )
 
         # List all files in the local table directory to S3
+        logger.info(
+            f"Table {self.table_name} uploading {len(table_files)} files"
+        )
         for file in table_files:
             local_file = table_dir / file
             s3_key = s3_table_prefix / file
-            self.session.s3_client.upload_file(
+            aws.s3_client.upload_file(
                 local_file.resolve().as_posix(),
-                self.session.s3_bucket,
+                aws.s3_bucket,
                 s3_key.as_posix(),
             )
 
@@ -294,3 +370,10 @@ class SparkJob:
         # also cleans up the metadata, .crc, and _SUCCESS files from Spark
         shutil.rmtree(self.initial_dir)
         shutil.rmtree(self.final_dir)
+
+        time_end = time.time()
+        time_duration = str(timedelta(seconds=(time_end - time_start)))
+        logger.info(f"Table {self.table_name} uploaded in {time_duration}")
+
+        new_local_files = [f.as_posix() for f in list(table_files - s3_files)]
+        return new_local_files
