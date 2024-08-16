@@ -1,5 +1,48 @@
 import json
+import logging
 from pathlib import Path
+
+
+def create_fallback_logger(log_file: str) -> logging.Logger:
+    """
+    Sets up a logger with the same output format and location as the primary
+    Spark logger from the JVM. Used as a fallback in case any part of the
+    main job loop fails.
+
+    Args:
+        log_file: String path to the log file where logs will be written.
+
+    Returns:
+        logging.Logger: Generic logger with the same log format as Spark.
+    """
+
+    # Formatter class to change WARNING to WARN for consistency with Spark
+    class CustomFormatter(logging.Formatter):
+        def format(self, record):
+            if record.levelname == "WARNING":
+                record.levelname = "WARN"
+            return super().format(record)
+
+    file_formatter = CustomFormatter(
+        fmt="%(asctime)s.%(msecs)03d %(levelname)s %(name)s: %(message)s",
+        datefmt="%Y-%m-%d_%H:%M:%S",
+    )
+    stdout_formatter = CustomFormatter(
+        fmt="%(asctime)s %(levelname)s %(name)s: %(message)s",
+        datefmt="%d/%m/%y %H:%M:%S",
+    )
+
+    logger = logging.getLogger(__name__)
+    logger.setLevel(logging.INFO)
+
+    file_handler = logging.FileHandler(log_file, mode="a")
+    file_handler.setFormatter(file_formatter)
+    stream_handler = logging.StreamHandler()
+    stream_handler.setFormatter(stdout_formatter)
+    logger.addHandler(file_handler)
+    logger.addHandler(stream_handler)
+
+    return logger
 
 
 def load_job_definitions(

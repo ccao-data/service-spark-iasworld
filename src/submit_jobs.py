@@ -4,7 +4,11 @@ from datetime import datetime, timedelta
 
 from joblib import Parallel, delayed
 from utils.aws import AWSClient
-from utils.helpers import load_job_definitions, load_predicates
+from utils.helpers import (
+    create_fallback_logger,
+    load_job_definitions,
+    load_predicates,
+)
 from utils.github import GitHubClient
 from utils.spark import SharedSparkSession, SparkJob
 
@@ -51,26 +55,37 @@ def parse_args():
     return parser.parse_args()
 
 
-def main():
+def submit_jobs(
+    app_name: str,
+    log_file_path: str,
+    json_file: str | None = None,
+    json_string: str | None = None,
+) -> None:
+    """
+    Submit Spark jobs for iasWorld data extraction and upload.
+
+    Args:
+        app_name: Name of the job batch. Shown in the Spark UI and used as
+            the logstream name in CloudWatch.
+        log_file_path: String path to the log file for this job.
+        json_file: Path to a JSON file containing job configuration(s).
+        json_string: JSON string containing job configuration(s).
+    """
     # Get the job definition(s) from the argument JSON
     time_start = time.time()
-    args = parse_args()
-    job_definitions = load_job_definitions(
-        json_file=args.json_file, json_string=args.json_string
-    )
+    job_definitions = load_job_definitions(json_file, json_string)
 
     # Each session is shared across all read jobs and manages job order,
     # credentialing, retries, etc.
-    current_datetime = datetime.now().strftime("%Y-%m-%d_%H:%M:%S")
-    session_name = f"iasworld_{current_datetime}"
     session = SharedSparkSession(
-        app_name=session_name,
+        app_name=app_name,
+        log_file_path=log_file_path,
         password_file_path=PATH_IPTS_PASSWORD,
     )
 
     # Perform some startup logging before entering the main job loop
     table_names = [i.get("table_name") for i in job_definitions.values()]
-    session.logger.info(f"Starting Spark session {session_name}")
+    session.logger.info(f"Starting Spark session {app_name}")
     session.logger.info(f"Extracting tables: {', '.join(table_names)}")
 
     # For each Spark job, get the table structure based on the job definition
@@ -166,13 +181,21 @@ def main():
     time_duration = str(timedelta(seconds=(time_end - time_start)))
     session.logger.info(f"Total extraction duration was {time_duration}")
 
-    # Upload final logs to CloudWatch
-    aws.upload_logs_to_cloudwatch(
-        log_group_name="/ccao/jobs/spark",
-        log_stream_name=session.app_name,
-        log_file_path=session.log_file_path,
-    )
-
 
 if __name__ == "__main__":
-    main()
+    current_datetime = datetime.now().strftime("%Y-%m-%d_%H:%M:%S")
+    app_name = f"iasworld_{current_datetime}"
+    log_file_path = f"/tmp/logs/{app_name}.log"
+    fallback_logger = create_fallback_logger(log_file_path)
+    args = parse_args()
+    try:
+        submit_jobs(app_name, log_file_path, args.json_file, args.json_string)
+    except Exception as e:
+        fallback_logger.error(e)
+
+    aws = AWSClient(logger=fallback_logger)
+    aws.upload_logs_to_cloudwatch(
+        log_group_name="/ccao/jobs/spark",
+        log_stream_name=app_name,
+        log_file_path=log_file_path,
+    )

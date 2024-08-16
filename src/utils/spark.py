@@ -40,7 +40,9 @@ class SharedSparkSession:
         logger: The logger object for the Spark session.
     """
 
-    def __init__(self, app_name: str, password_file_path: str) -> None:
+    def __init__(
+        self, app_name: str, log_file_path: str, password_file_path: str
+    ) -> None:
         self.app_name = app_name
         self.password_file_path = password_file_path
 
@@ -67,7 +69,7 @@ class SharedSparkSession:
 
         # Create the Spark session and logging
         self.spark = SparkSession.builder.appName(self.app_name).getOrCreate()
-        self.log_file_path = f"/tmp/logs/{self.app_name}.log"
+        self.log_file_path = log_file_path
         self.logger = self.get_logger()
 
     def get_logger(self):
