@@ -18,10 +18,12 @@ class GitHubClient:
         Attributes:
             gh_pem_path: Container path to the GitHub certificate file.
             gh_app_id: GitHub Application ID for running a workflow.
+            gh_api_url: GitHub URL prefix to use for workflow triggers.
             gh_jwt: GitHub JSON Web Token for authenticating with the API.
         """
         self.gh_pem_path = gh_pem_path
         self.gh_app_id = os.getenv("GH_APP_ID")
+        self.gh_api_url = "https://api.github.com/repos/"
         self.gh_jwt = self.create_jwt_token()
 
     def create_jwt_token(self) -> str:

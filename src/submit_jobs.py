@@ -54,6 +54,40 @@ def parse_args():
         nargs="?",
         help="JSON string containing job configurations(s)",
     )
+    parser.add_argument(
+        "--run-github-workflow",
+        action=argparse.BooleanOptionalAction,
+        required=False,
+        default=True,
+        help="Run GitHub Actions workflow to run dbt tests. Defaults to True.",
+    )
+    parser.add_argument(
+        "--run-glue-crawler",
+        action=argparse.BooleanOptionalAction,
+        required=False,
+        default=True,
+        help=(
+            "Run Glue crawler to discover new partitions. Only runs if "
+            "previously unseen files are uploaded to S3. Defaults to True."
+        ),
+    )
+    parser.add_argument(
+        "--upload-logs",
+        action=argparse.BooleanOptionalAction,
+        required=False,
+        default=True,
+        help="Toggle upload of job logs to AWS CloudWatch. Defaults to True",
+    )
+    parser.add_argument(
+        "--upload-data",
+        action=argparse.BooleanOptionalAction,
+        required=False,
+        default=True,
+        help=(
+            "Toggle upload of extracted files to AWS S3. If set to False, "
+            "files will still be created locally. Defaults to True."
+        ),
+    )
 
     return parser.parse_args()
 
@@ -62,15 +96,15 @@ def submit_jobs(
     app_name: str,
     json_file: str | None = None,
     json_string: str | None = None,
+    run_github_workflow: bool = True,
+    run_glue_crawler: bool = True,
+    upload_logs: bool = True,
+    upload_data: bool = True,
 ) -> None:
     """
     Submit Spark jobs for iasWorld data extraction and upload.
 
-    Args:
-        app_name: Name of the job batch. Shown in the Spark UI and used as
-            the logstream name in CloudWatch.
-        json_file: Path to a JSON file containing job configuration(s).
-        json_string: JSON string containing job configuration(s).
+    See the `parse_args` function for available command-line arguments.
     """
     # Get the job definition(s) from the argument JSON
     time_start = time.time()
@@ -149,27 +183,29 @@ def submit_jobs(
     # Upload extracted files to AWS S3 in Hive-partitioned Parquet
     aws = AWSClient()
     new_local_files = []
-    for job in jobs:
-        job_upload_results = job.upload(aws)
-        new_local_files.extend(job_upload_results)
+    if upload_data:
+        for job in jobs:
+            job_upload_results = job.upload(aws)
+            new_local_files.extend(job_upload_results)
 
     # If any jobs uploaded never-seen-before files, trigger a Glue crawler
-    if new_local_files:
+    if new_local_files and run_glue_crawler:
         logger.info(
             (
-                f"{len(new_local_files)} previously unseen files uploaded to S3, "
-                "triggering Glue crawler"
+                f"{len(new_local_files)} previously unseen files uploaded "
+                "to S3, triggering Glue crawler"
             )
         )
         aws.run_and_wait_for_crawler("ccao-data-warehouse-iasworld-crawler")
 
     # Trigger a GitHub workflow to run dbt tests once all jobs are complete
-    logger.info("All file uploads complete, triggering dbt tests")
-    github = GitHubClient(gh_pem_path=PATH_GH_PEM)
-    github.run_workflow(
-        repository="https://api.github.com/repos/ccao-data/data-architecture",
-        workflow="test_dbt_models.yaml",
-    )
+    if run_github_workflow:
+        logger.info("All file uploads complete, triggering dbt tests")
+        github = GitHubClient(gh_pem_path=PATH_GH_PEM)
+        github.run_workflow(
+            repository=(github.gh_api_url + "ccao-data/data-architecture"),
+            workflow="test_dbt_models.yaml",
+        )
 
     # Print table names and descriptions for extracted tables
     logger.info(f"Extracted tables: {', '.join(table_names)}")
@@ -187,13 +223,22 @@ if __name__ == "__main__":
     app_name = f"iasworld_{current_datetime}"
     args = parse_args()
     try:
-        submit_jobs(app_name, args.json_file, args.json_string)
+        submit_jobs(
+            app_name=app_name,
+            json_file=args.json_file,
+            json_string=args.json_string,
+            run_github_workflow=args.run_github_workflow,
+            run_glue_crawler=args.run_glue_crawler,
+            upload_logs=args.upload_logs,
+            upload_data=args.upload_data,
+        )
     except Exception as e:
         logger.error(e)
 
-    aws = AWSClient()
-    aws.upload_logs_to_cloudwatch(
-        log_group_name="/ccao/jobs/spark",
-        log_stream_name=app_name,
-        log_file_path=PATH_SPARK_LOG,
-    )
+    if args.upload_logs:
+        aws = AWSClient()
+        aws.upload_logs_to_cloudwatch(
+            log_group_name="/ccao/jobs/spark",
+            log_stream_name=app_name,
+            log_file_path=PATH_SPARK_LOG,
+        )
