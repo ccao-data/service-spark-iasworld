@@ -145,7 +145,7 @@ def main():
 
     # Trigger a GitHub workflow to run dbt tests once all jobs are complete
     session.logger.info("All file uploads complete, triggering dbt tests")
-    github = GitHubClient(gh_pem_path=PATH_GH_PEM)
+    github = GitHubClient(logger=session.logger, gh_pem_path=PATH_GH_PEM)
     github.run_workflow(
         repository="https://api.github.com/repos/ccao-data/data-architecture",
         workflow="test_dbt_models.yaml",
