@@ -156,8 +156,6 @@ class SparkJob:
         if self.cur:
             desc.append(f"cur=[{', '.join(self.cur)}]")
 
-        logger.info(f"Table {self.table_name} description: {', '.join(desc)}")
-
         return ", ".join(desc)
 
     def get_filter(self) -> str | None:
@@ -173,7 +171,6 @@ class SparkJob:
             filter.append(f"cur IN ({', '.join(quoted_cur)})")
 
         filter_join = " AND ".join(filter)
-        logger.info(f"Table {self.table_name} filter: {filter_join}")
 
         return filter_join if filter != [] else None
 
@@ -187,9 +184,6 @@ class SparkJob:
             partitions.append("taxyr")
         if self.cur:
             partitions.append("cur")
-        logger.info(
-            f"Table {self.table_name} partitions: {', '.join(partitions)}"
-        )
 
         return partitions
 
@@ -203,6 +197,23 @@ class SparkJob:
         description = self.get_description()
         filter = self.get_filter()
         partitions = self.get_partitions()
+
+        # Create a block of log messages at the start of each job
+        logger.info(
+            (
+                f"Table {self.table_name}: starting JDBC read job",
+                "with the following settings",
+            )
+        )
+        logger.info(f"Table {self.table_name} description: {description}")
+        if partitions:
+            partitions_join = ", ".join(partitions)
+            logger.info(
+                f"Table {self.table_name} partitions: {partitions_join}"
+            )
+        if filter:
+            filter_join = " AND ".join(filter)
+            logger.info(f"Table {self.table_name} filter: {filter_join}")
 
         # Must use the JDBC read method here since the normal spark.read()
         # doesn't accept predicates https://stackoverflow.com/a/48680140

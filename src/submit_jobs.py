@@ -170,11 +170,10 @@ def submit_jobs(
         workflow="test_dbt_models.yaml",
     )
 
-    # Print table names for extracted tables and total elapsed time. The
-    # get_description() call is to print the description of each table to logs
+    # Print table names and descriptions for extracted tables
     logger.info(f"Extracted tables: {', '.join(table_names)}")
     for job in jobs:
-        job.get_description()
+        logger.info(job.get_description())
 
     time_end = time.time()
     time_duration = str(timedelta(seconds=(time_end - time_start)))
