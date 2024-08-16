@@ -285,7 +285,7 @@ class SparkJob:
             f"Table {self.table_name} repartitioned in {time_duration}"
         )
 
-    def upload(self, aws: AWSClient) -> bool:
+    def upload(self, aws: AWSClient) -> list[str]:
         """
         Upload the final partitioned Parquet files to S3. This clears the
         remote S3 equivalent of each local partition prior to upload in order
@@ -296,7 +296,7 @@ class SparkJob:
             aws: AWS client class container S3 connection/location details.
 
         Returns:
-            bool: Whether new (yet unseen) local keys were uploaded to S3.
+            list[str]: List of previously unseen files uploaded to S3.
         """
 
         time_start = time.time()
@@ -372,4 +372,5 @@ class SparkJob:
             f"Table {self.table_name} uploaded in {time_duration}"
         )
 
-        return bool(table_files - s3_files)
+        new_local_files = [f.as_posix() for f in list(table_files - s3_files)]
+        return new_local_files

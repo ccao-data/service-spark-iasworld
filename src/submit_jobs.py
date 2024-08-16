@@ -136,11 +136,16 @@ def main():
     new_local_files = []
     for job in jobs:
         job_upload_results = job.upload(aws)
-        new_local_files.append(job_upload_results)
+        new_local_files.extend(job_upload_results)
 
     # If any jobs uploaded never-seen-before files, trigger a Glue crawler
-    if any(new_local_files):
-        session.logger.info("New partitions uploaded, triggering Glue crawler")
+    if new_local_files:
+        session.logger.info(
+            (
+                f"{len(new_local_files)} previously unseen files uploaded to S3, "
+                "triggering Glue crawler"
+            )
+        )
         aws.run_and_wait_for_crawler("ccao-data-warehouse-iasworld-crawler")
 
     # Trigger a GitHub workflow to run dbt tests once all jobs are complete

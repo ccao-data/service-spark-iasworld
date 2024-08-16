@@ -62,8 +62,10 @@ class AWSClient:
             time_elapsed += time_increment
         if not job_complete:
             self.logger.warn(
-                f"Crawler {crawler_name} was still running after the {timeout}s polling timeout; "
-                "continuing execution without confirming its status"
+                (
+                    f"Crawler {crawler_name} was still running after the {timeout}s"
+                    f"timeout; continuing execution without confirming its status"
+                )
             )
 
     def upload_logs_to_cloudwatch(
