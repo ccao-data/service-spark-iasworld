@@ -37,6 +37,7 @@ class SharedSparkSession:
         s3_bucket: S3 bucket to upload extracts to.
         s3_prefix: S3 path prefix within S3 bucket. Defaults to "iasworld".
         spark: The Spark session object.
+        logger: The logger object for the Spark session.
     """
 
     def __init__(self, app_name: str, password_file_path: str) -> None:
@@ -70,6 +71,34 @@ class SharedSparkSession:
         self.s3_prefix = os.getenv("AWS_S3_PREFIX", "iasworld")
 
         self.spark = SparkSession.builder.appName(self.app_name).getOrCreate()
+        self.logger = self.get_logger()
+
+    def get_logger(self):
+        """
+        Extract the logger from the JVM used by Spark. We can send Python
+        logging messages here with the same format. Also writes to a file.
+        """
+        # Get Spark logger. See https://stackoverflow.com/a/72740559
+        log4j = self.spark.sparkContext._jvm.org.apache.log4j
+        spark_logger = log4j.LogManager.getLogger("org.apache.spark")
+
+        # Create a file appender to write to write to a session log file
+        appender = log4j.FileAppender()
+        appender.setAppend(True)
+        # For some reason it's necessary to set the log pattern, even though
+        # the format string replicates the default format used by Spark, with
+        # the addition of milliseconds
+        layout = log4j.PatternLayout()
+        layout.setConversionPattern(
+            "%d{yyyy-MM-dd HH:mm:ss.SSS} %p %c{1}: %m%n"
+        )
+        appender.setLayout(layout)
+        appender.setFile(f"/tmp/logs/{self.app_name}.log")
+        appender.activateOptions()
+
+        spark_logger.removeAllAppenders()
+        spark_logger.addAppender(appender)
+        return spark_logger
 
 
 class SparkJob:
@@ -210,6 +239,7 @@ class SparkJob:
 
             [140K] /tmp/target/final/addn/taxyr=2020/cur=Y/part-0.zstd.parquet
         """
+
         dataset = ds.dataset(
             source=self.initial_dir,
             format="parquet",
