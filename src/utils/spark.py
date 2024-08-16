@@ -201,21 +201,13 @@ class SparkJob:
         partitions = self.get_partitions()
 
         # Create a block of log messages at the start of each job
-        logger.info(
-            (
-                f"Table {self.table_name}: starting JDBC read job",
-                "with the following settings",
-            )
-        )
         logger.info(f"Table {self.table_name} description: {description}")
         if partitions:
-            partitions_join = ", ".join(partitions)
             logger.info(
-                f"Table {self.table_name} partitions: {partitions_join}"
+                f"Table {self.table_name} partitions: {', '.join(partitions)}"
             )
         if filter:
-            filter_join = " AND ".join(filter)
-            logger.info(f"Table {self.table_name} filter: {filter_join}")
+            logger.info(f"Table {self.table_name} filter: {filter}")
 
         # Must use the JDBC read method here since the normal spark.read()
         # doesn't accept predicates https://stackoverflow.com/a/48680140
@@ -267,6 +259,10 @@ class SparkJob:
         """
 
         time_start = time.time()
+        partitions = self.get_partitions()
+        parts = ", ".join(self.get_partitions()) if partitions else "None"
+        logger.info(f"Table {self.table_name} repartitioning with: {parts}")
+
         dataset = ds.dataset(
             source=self.initial_dir,
             format="parquet",

@@ -86,7 +86,7 @@ class GitHubClient:
                     json=data,
                 )
                 response.raise_for_status()
-                logger.info(f"GH workflow triggered: {workflow}")
+                logger.info(f"GitHub workflow triggered: {workflow}")
 
             except Exception as e:
                 logger.error(f"GitHub workflow run failed: {e}")

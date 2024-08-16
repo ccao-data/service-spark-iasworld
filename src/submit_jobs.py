@@ -173,6 +173,7 @@ def submit_jobs(
 
     # Print table names and descriptions for extracted tables
     logger.info(f"Extracted tables: {', '.join(table_names)}")
+    logger.info("Extracted tables using the following settings:")
     for job in jobs:
         logger.info(job.get_description())
 
