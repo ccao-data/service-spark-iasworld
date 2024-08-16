@@ -4,7 +4,7 @@ import os
 import time
 
 
-class SharedAWSClient:
+class AWSClient:
     def __init__(self, logger: logging.Logger):
         """
         Class to store AWS clients and methods for various AWS actions.
@@ -23,17 +23,32 @@ class SharedAWSClient:
         self.s3_bucket = os.getenv("AWS_S3_BUCKET")
         self.s3_prefix = os.getenv("AWS_S3_PREFIX", "iasworld")
 
-    def run_and_wait_for_crawler(self, crawler_name):
-        self.logger.info(f"Starting AWS Glue crawler {crawler_name}")
-        self.glue_client.start_crawler(Name=crawler_name)
+    def run_and_wait_for_crawler(self, crawler_name) -> None:
+        initial_response = self.glue_client.get_crawler(Name=crawler_name)
+        if initial_response["Crawler"]["State"] == "READY":  # type: ignore
+            self.logger.info(f"Starting AWS Glue crawler {crawler_name}")
+            self.glue_client.start_crawler(Name=crawler_name)
+        else:
+            self.logger.warn(
+                f"AWS Glue crawler {crawler_name} is already running"
+            )
+            return
 
         # Wait for the crawler to complete
+        time_start = time.time()
+        time_elapsed = 0.0
         while True:
             response = self.glue_client.get_crawler(Name=crawler_name)
-            state = response["Crawler"]["State"]
-            if state == "READY":
-                self.logger.info(f"Crawler {crawler_name} has completed.")
+            state = response["Crawler"]["State"]  # type: ignore
+            if state in ["READY", "STOPPING"]:
+                self.logger.info(f"Crawler {crawler_name} has finished")
                 break
             elif state == "RUNNING":
-                self.logger.info(f"Crawler {crawler_name} is still running...")
+                self.logger.info(
+                    (
+                        f"Crawler {crawler_name} is running: "
+                        f"{round(time_elapsed, 0)}s elapsed"
+                    )
+                )
             time.sleep(30)
+            time_elapsed += time.time() - time_start

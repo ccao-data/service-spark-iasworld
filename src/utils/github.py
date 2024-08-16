@@ -5,7 +5,7 @@ import jwt
 import requests
 
 
-class SharedGitHubSession:
+class GitHubClient:
     def __init__(self, gh_pem_path: str) -> None:
         """
         Class to generate and store the credentials associated with GitHub,

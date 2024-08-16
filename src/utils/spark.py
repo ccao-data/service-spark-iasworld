@@ -7,7 +7,7 @@ from pathlib import Path
 from pyarrow import dataset as ds
 from pyspark.sql import SparkSession
 
-from utils.aws import SharedAWSClient
+from utils.aws import AWSClient
 from utils.helpers import strip_table_prefix
 
 
@@ -282,7 +282,7 @@ class SparkJob:
             f"Table {self.table_name} repartitioned in {time_duration}"
         )
 
-    def upload(self, aws: SharedAWSClient) -> bool:
+    def upload(self, aws: AWSClient) -> bool:
         """
         Upload the final partitioned Parquet files to S3. This clears the
         remote S3 equivalent of each local partition prior to upload in order
@@ -298,7 +298,7 @@ class SparkJob:
 
         time_start = time.time()
         table_dir = Path(self.final_dir)
-        s3_root_prefix = Path(aws.s3_client.s3_prefix)
+        s3_root_prefix = Path(aws.s3_prefix)
         s3_table_prefix = s3_root_prefix / strip_table_prefix(self.table_name)
 
         # List all files and directories in the local table output directory
@@ -340,8 +340,8 @@ class SparkJob:
             )
             self.session.logger.info(
                 (
-                    f"Table {self.table_name} deleting files: ",
-                    f"{', '.join(map(lambda p: p.as_posix(), s3_files_to_delete))}",
+                    f"Table {self.table_name} deleting files: "
+                    f"{', '.join(map(lambda p: p.as_posix(), s3_files_to_delete))}"
                 )
             )
 
@@ -362,9 +362,6 @@ class SparkJob:
         # also cleans up the metadata, .crc, and _SUCCESS files from Spark
         shutil.rmtree(self.initial_dir)
         shutil.rmtree(self.final_dir)
-        self.session.logger.info(
-            f"Table {self.table_name} clearing local directories"
-        )
 
         time_end = time.time()
         time_duration = str(timedelta(seconds=(time_end - time_start)))
