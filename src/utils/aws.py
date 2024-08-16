@@ -106,5 +106,9 @@ class AWSClient:
             )
             print("Successfully uploaded log file to CloudWatch")
 
+            # Remove the log file after successful upload
+            os.remove(log_file_path)
+            print(f"Successfully removed log file: {log_file_path}")
+
         except Exception as e:
             print(f"Failed to upload log file to CloudWatch: {e}")
