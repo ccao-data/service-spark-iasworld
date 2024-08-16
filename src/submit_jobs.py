@@ -3,6 +3,7 @@ import time
 from datetime import datetime, timedelta
 
 from joblib import Parallel, delayed
+from utils.aws import SharedAWSClient
 from utils.helpers import load_job_definitions, load_predicates
 from utils.github import SharedGitHubSession
 from utils.spark import SharedSparkSession, SparkJob
@@ -131,8 +132,16 @@ def main():
         job.repartition()
 
     # Upload extracted files to AWS S3 in Hive-partitioned Parquet
+    aws = SharedAWSClient(logger=session.logger)
+    new_local_files = []
     for job in jobs:
-        job.upload()
+        job_upload_results = job.upload()
+        new_local_files.append(job_upload_results)
+
+    # If any jobs uploaded never-seen-before files, trigger a Glue crawler
+    if any(new_local_files):
+        session.logger.info("New partitions uploaded, triggering Glue crawler")
+        aws.run_and_wait_for_crawler("iasworld")
 
     # Trigger a GitHub workflow to run dbt tests once all jobs are complete
     session.logger.info("All file uploads complete, triggering dbt tests")

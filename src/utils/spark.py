@@ -4,10 +4,10 @@ import time
 from datetime import timedelta
 from pathlib import Path
 
-import boto3
 from pyarrow import dataset as ds
 from pyspark.sql import SparkSession
 
+from utils.aws import SharedAWSClient
 from utils.helpers import strip_table_prefix
 
 
@@ -35,9 +35,6 @@ class SharedSparkSession:
             written via JDBC extract. Defaults to snappy.
         final_compression: The compression type final repartitioned Parquet
             files. Defaults to ztd.
-        s3_client: S3 client connection. Instantiated from secrets file.
-        s3_bucket: S3 bucket to upload extracts to.
-        s3_prefix: S3 path prefix within S3 bucket. Defaults to "iasworld".
         spark: The Spark session object.
         logger: The logger object for the Spark session.
     """
@@ -66,11 +63,6 @@ class SharedSparkSession:
         self.fetch_size = "10000"
         self.initial_compression = "snappy"
         self.final_compression = "zstd"
-
-        # Store S3 details so workers can upload finished jobs
-        self.s3_client = boto3.client("s3")
-        self.s3_bucket = os.getenv("AWS_S3_BUCKET")
-        self.s3_prefix = os.getenv("AWS_S3_PREFIX", "iasworld")
 
         self.spark = SparkSession.builder.appName(self.app_name).getOrCreate()
         self.logger = self.get_logger()
@@ -290,17 +282,23 @@ class SparkJob:
             f"Table {self.table_name} repartitioned in {time_duration}"
         )
 
-    def upload(self) -> None:
+    def upload(self, aws: SharedAWSClient) -> bool:
         """
         Upload the final partitioned Parquet files to S3. This clears the
         remote S3 equivalent of each local partition prior to upload in order
         to prevent orphan files. It also clears the local directory for the
         table on completion.
+
+        Args:
+            aws: AWS client class container S3 connection/location details.
+
+        Returns:
+            bool: Whether new (yet unseen) local keys were uploaded to S3.
         """
 
         time_start = time.time()
         table_dir = Path(self.final_dir)
-        s3_root_prefix = Path(self.session.s3_prefix)
+        s3_root_prefix = Path(aws.s3_client.s3_prefix)
         s3_table_prefix = s3_root_prefix / strip_table_prefix(self.table_name)
 
         # List all files and directories in the local table output directory
@@ -319,11 +317,11 @@ class SparkJob:
         # subdirectory in S3 of any files that won't be replaced by new uploads.
         # This is to prevent stale files with different S3 keys from hanging
         # around and polluting our data in Athena
-        paginator = self.session.s3_client.get_paginator("list_objects_v2")
+        paginator = aws.s3_client.get_paginator("list_objects_v2")
         s3_files = set()
         for subdir in table_subdirs:
             for page in paginator.paginate(
-                Bucket=self.session.s3_bucket,
+                Bucket=aws.s3_bucket,
                 Prefix=(s3_table_prefix / subdir).as_posix(),
             ):
                 for obj in page.get("Contents", []):
@@ -336,8 +334,8 @@ class SparkJob:
                 {"Key": f"{s3_table_prefix.as_posix()}/{key.as_posix()}"}
                 for key in s3_files_to_delete
             ]
-            self.session.s3_client.delete_objects(
-                Bucket=self.session.s3_bucket,
+            aws.s3_client.delete_objects(
+                Bucket=aws.s3_bucket,
                 Delete={"Objects": delete_objects},
             )
             self.session.logger.info(
@@ -354,9 +352,9 @@ class SparkJob:
         for file in table_files:
             local_file = table_dir / file
             s3_key = s3_table_prefix / file
-            self.session.s3_client.upload_file(
+            aws.s3_client.upload_file(
                 local_file.resolve().as_posix(),
-                self.session.s3_bucket,
+                aws.s3_bucket,
                 s3_key.as_posix(),
             )
 
@@ -373,3 +371,5 @@ class SparkJob:
         self.session.logger.info(
             f"Table {self.table_name} finished upload in {time_duration}"
         )
+
+        return bool(table_files - s3_files)
