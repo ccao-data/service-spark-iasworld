@@ -156,6 +156,13 @@ def main():
     time_duration = str(timedelta(seconds=(time_end - time_start)))
     session.logger.info(f"Total extraction duration was {time_duration}")
 
+    # Upload final logs to CloudWatch
+    aws.upload_logs_to_cloudwatch(
+        log_group_name="/ccao/jobs/spark",
+        log_stream_name=session.app_name,
+        log_file_path=session.log_file_path,
+    )
+
 
 if __name__ == "__main__":
     main()

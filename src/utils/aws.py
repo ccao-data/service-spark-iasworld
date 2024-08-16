@@ -1,23 +1,28 @@
-import boto3
 import logging
 import os
 import time
+from datetime import datetime
+
+import boto3
 
 
 class AWSClient:
     def __init__(self, logger: logging.Logger):
         """
-        Class to store AWS clients and methods for various AWS actions.
+        Class to store AWS clients and methods for various AWS actions. Clients
+        are instantiated from AWS credentials passed via Compose secrets.
 
         Attributes:
             logger: Spark session logger that outputs to shared file in the
                 same format.
-            glue_client: Glue client connection. Instantiated from secrets file.
-            s3_client: S3 client connection. Instantiated from secrets file.
+            logs_client: Glue client connection for running crawlers.
+            glue_client: CloudWatch logs connection for uploading logs.
+            s3_client: S3 client connection for uploading extracted files.
             s3_bucket: S3 bucket to upload extracts to.
             s3_prefix: S3 path prefix within S3 bucket. Defaults to "iasworld".
         """
         self.logger = logger
+        self.logs_client = boto3.client("logs")
         self.glue_client = boto3.client("glue")
         self.s3_client = boto3.client("s3")
         self.s3_bucket = os.getenv("AWS_S3_BUCKET")
@@ -34,7 +39,7 @@ class AWSClient:
             )
             return
 
-        # Wait for the crawler to complete
+        # Wait for the crawler to complete before triggering dbt tests
         time_start = time.time()
         time_elapsed = 0.0
         while True:
@@ -52,3 +57,54 @@ class AWSClient:
                 )
             time.sleep(30)
             time_elapsed += time.time() - time_start
+
+    def upload_logs_to_cloudwatch(
+        self, log_group_name: str, log_stream_name: str, log_file_path: str
+    ) -> None:
+        """
+        Uploads a log file to a specified CloudWatch log group.
+
+        Args:
+            log_group_name: The name of the CloudWatch log group.
+            log_stream_name: The name of the CloudWatch log stream to write to.
+            log_file_path: The path to the log file to upload.
+        """
+        try:
+            with open(log_file_path, "r") as log_file:
+                log_events = []
+                for line in log_file:
+                    timestamp_str, message = line.split(" ", 1)
+                    timestamp = int(
+                        (
+                            datetime.strptime(
+                                timestamp_str, "%Y-%m-%d_%H:%M:%S.%f"
+                            ).timestamp()
+                            * 1000
+                        )
+                    )
+                    log_events.append(
+                        {
+                            "timestamp": timestamp,
+                            "message": message.strip(),
+                        }
+                    )
+
+            # CloudWatch doesn't allow colon in stream names, so use a dash
+            log_stream_name_fmt = log_stream_name.replace(":", "-")
+            try:
+                self.logs_client.create_log_stream(
+                    logGroupName=log_group_name,
+                    logStreamName=log_stream_name_fmt,
+                )
+            except self.logs_client.exceptions.ResourceAlreadyExistsException:
+                pass
+
+            self.logs_client.put_log_events(
+                logGroupName=log_group_name,
+                logStreamName=log_stream_name_fmt,
+                logEvents=log_events,
+            )
+            print("Successfully uploaded log file to CloudWatch")
+
+        except Exception as e:
+            print(f"Failed to upload log file to CloudWatch: {e}")

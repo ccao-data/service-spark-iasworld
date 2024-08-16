@@ -1,4 +1,5 @@
 import os
+import logging
 import time
 
 import jwt
@@ -6,16 +7,19 @@ import requests
 
 
 class GitHubClient:
-    def __init__(self, gh_pem_path: str) -> None:
+    def __init__(self, logger: logging.Logger, gh_pem_path: str) -> None:
         """
         Class to generate and store the credentials associated with GitHub,
         along with methods to dispatch a GitHub Actions workflow.
 
         Attributes:
+            logger: Spark session logger that outputs to shared file in the
+                same format.
             gh_pem_path: Container path to the GitHub certificate file.
             gh_app_id: GitHub Application ID for running a workflow.
             gh_jwt: GitHub JSON Web Token for authenticating with the API.
         """
+        self.logger = logger
         self.gh_pem_path = gh_pem_path
         self.gh_app_id = os.getenv("GH_APP_ID")
         self.gh_jwt = self.create_jwt_token()
@@ -61,20 +65,28 @@ class GitHubClient:
             return headers
 
         if self.gh_app_id and self.gh_pem_path:
-            response = requests.get(
-                "https://api.github.com/app/installations",
-                headers=create_headers(self.gh_jwt),
-            )
-            gh_tokens_url = response.json()[0]["access_tokens_url"]
+            try:
+                response = requests.get(
+                    "https://api.github.com/app/installations",
+                    headers=create_headers(self.gh_jwt),
+                )
+                response.raise_for_status()
+                gh_tokens_url = response.json()[0]["access_tokens_url"]
 
-            response = requests.post(
-                gh_tokens_url, headers=create_headers(self.gh_jwt)
-            )
-            gh_token = response.json()["token"]
+                response = requests.post(
+                    gh_tokens_url, headers=create_headers(self.gh_jwt)
+                )
+                response.raise_for_status()
+                gh_token = response.json()["token"]
 
-            data = {"ref": "master"}
-            response = requests.post(
-                f"{repository}/actions/workflows/{workflow}/dispatches",
-                headers=create_headers(gh_token),
-                json=data,
-            )
+                data = {"ref": "master"}
+                response = requests.post(
+                    f"{repository}/actions/workflows/{workflow}/dispatches",
+                    headers=create_headers(gh_token),
+                    json=data,
+                )
+                response.raise_for_status()
+                self.logger.info(f"GH workflow triggered: {workflow}")
+
+            except Exception as e:
+                self.logger.error(f"GH workflow run failed: {e}")

@@ -36,6 +36,7 @@ class SharedSparkSession:
         final_compression: The compression type final repartitioned Parquet
             files. Defaults to ztd.
         spark: The Spark session object.
+        log_file_path: The path to the log file for the Spark session.
         logger: The logger object for the Spark session.
     """
 
@@ -64,7 +65,9 @@ class SharedSparkSession:
         self.initial_compression = "snappy"
         self.final_compression = "zstd"
 
+        # Create the Spark session and logging
         self.spark = SparkSession.builder.appName(self.app_name).getOrCreate()
+        self.log_file_path = f"/tmp/logs/{self.app_name}.log"
         self.logger = self.get_logger()
 
     def get_logger(self):
@@ -84,10 +87,10 @@ class SharedSparkSession:
         # the addition of milliseconds
         layout = log4j.PatternLayout()
         layout.setConversionPattern(
-            "%d{yyyy-MM-dd HH:mm:ss.SSS} %p %c{1}: %m%n"
+            "%d{yyyy-MM-dd_HH:mm:ss.SSS} %p %c{1}: %m%n"
         )
         appender.setLayout(layout)
-        appender.setFile(f"/tmp/logs/{self.app_name}.log")
+        appender.setFile(self.log_file_path)
         appender.activateOptions()
 
         spark_logger.removeAllAppenders()
