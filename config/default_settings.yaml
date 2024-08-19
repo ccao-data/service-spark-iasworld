@@ -1,10 +1,10 @@
 # Default arguments used for the CLI. Can be overridden using the corresponding
 # flag at runtime
 default_args:
-  run_github_workflow: False
-  run_glue_crawler: False
-  upload_logs: False
-  upload_data: False
+  run_github_workflow: True
+  run_glue_crawler: True
+  upload_logs: True
+  upload_data: True
 
 # Data type overrides are necessary to maintain parity/consistency with sqoop.
 # Schema overrides are defined in three places, with each overriding the last:

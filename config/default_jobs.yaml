@@ -196,22 +196,22 @@ test_jobs:
     max_year: null
     cur: null
     predicates_path: null
-  # addn:
-  #   table_name: iasworld.addn
-  #   min_year: *min_year
+  addn:
+    table_name: iasworld.addn
+    min_year: *min_year
   addrindx:
     table_name: iasworld.addrindx
     min_year: 2011
     max_year: 2013
-  # aprval:
-  #   table_name: iasworld.aprval
-  #   max_year: 2004
-  #   cur: ["Y"]
-  # sales:
-  #   table_name: iasworld.sales
-  #   min_year: null
-  #   max_year: null
-  # valclass:
-  #   table_name: iasworld.valclass
-  #   cur: null
-  #   predicates_path: null
+  aprval:
+    table_name: iasworld.aprval
+    max_year: 2004
+    cur: ["Y"]
+  sales:
+    table_name: iasworld.sales
+    min_year: null
+    max_year: null
+  valclass:
+    table_name: iasworld.valclass
+    cur: null
+    predicates_path: null
