@@ -6,6 +6,7 @@ from pathlib import Path
 
 from pyarrow import dataset as ds
 from pyspark.sql import SparkSession
+from pyspark.sql.functions import current_timestamp, date_format
 
 from utils.aws import AWSClient
 from utils.helpers import (
@@ -13,6 +14,10 @@ from utils.helpers import (
     create_python_logger,
     strip_table_prefix,
 )
+
+SPARK_OVERRIDE_SCHEMA = "iasw_id DECIMAL(38, 0)"
+SPARK_TS_FORMAT = "yyyy-MM-dd HH:mm:ss.SSS"
+SPARK_TS_COLUMNS = ["ss_ext_date", "wen"]
 
 logger = create_python_logger(__name__)
 
@@ -219,6 +224,7 @@ class SparkJob:
                 "user": self.session.ipts_username,
                 "password": self.session.ipts_password,
                 "fetchsize": self.session.fetch_size,
+                "customSchema": SPARK_OVERRIDE_SCHEMA,
             },
         )
 
@@ -226,6 +232,18 @@ class SparkJob:
         # because it errors with an empty string or None value
         if filter:
             df = df.filter(filter)
+
+        # Convert all timestamp columns to strings to match Sqoop output
+        df = df.toDF(*(c.lower() for c in df.columns))
+        for col in SPARK_TS_COLUMNS:
+            if col in df.columns:
+                df = df.withColumn(col, date_format(col, SPARK_TS_FORMAT))
+
+        # Add a timestamp column to the data to track when it was loaded
+        df = df.withColumn(
+            "loaded_at",
+            date_format(current_timestamp(), SPARK_TS_FORMAT),
+        )
 
         # Set a nice pretty description in the Spark UI to see which tables
         # are processing

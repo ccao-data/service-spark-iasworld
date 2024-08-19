@@ -9,7 +9,6 @@ def create_python_logger(
     name: str, log_file_path: str = PATH_SPARK_LOG
 ) -> logging.Logger:
     """
-    Sets up a logger with the same output format and location as the primary
     Spark logger from the JVM. Also used as a fallback in case any part of the
     main job loop fails.
 
