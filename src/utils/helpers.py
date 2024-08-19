@@ -1,5 +1,6 @@
 import json
 import logging
+import yaml
 from pathlib import Path
 
 PATH_SPARK_LOG = "/tmp/logs/spark.log"
@@ -105,6 +106,22 @@ def load_predicates(path: str) -> list[str]:
         predicates = [line.strip() for line in file.readlines()]
 
     return predicates
+
+
+def load_yaml(path: str, key: str):
+    """
+    Fetch values from from a static YAML file.
+
+    Args:
+        path: String path to a YAML file within the `config/` directory.
+        key: Arbitrary key to fetch values from the YAML file.
+
+    Returns: Values from the corresponding YAML key.
+    """
+    with open(path, mode="r") as file:
+        data = yaml.safe_load(file)
+    values = data.get(key)
+    return values
 
 
 def strip_table_prefix(table_name: str) -> str:

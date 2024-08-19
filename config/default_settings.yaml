@@ -1,0 +1,14 @@
+# Default arguments used for the CLI. Can be overridden using the corresponding
+# flag at runtime
+default_args:
+  run-github-workflow: True
+  run-glue-crawler: True
+  upload-logs: True
+  upload-data: True
+
+# Schema coercions used for every table. Note that these are used
+# even if the column does not exist in a given table; Spark will simply
+# ignore such overrides
+global_schema_overrides:
+  - iasw_id DECIMAL(38, 0)
+  - wen STRING

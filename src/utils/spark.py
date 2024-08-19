@@ -6,7 +6,6 @@ from pathlib import Path
 
 from pyarrow import dataset as ds
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import current_timestamp, date_format
 
 from utils.aws import AWSClient
 from utils.helpers import (
@@ -14,10 +13,6 @@ from utils.helpers import (
     create_python_logger,
     strip_table_prefix,
 )
-
-SPARK_OVERRIDE_SCHEMA = "iasw_id DECIMAL(38, 0)"
-SPARK_TS_FORMAT = "yyyy-MM-dd HH:mm:ss.SSS"
-SPARK_TS_COLUMNS = ["ss_ext_date", "wen"]
 
 logger = create_python_logger(__name__)
 
@@ -120,6 +115,8 @@ class SparkJob:
         taxyr: The tax year(s) to filter and partition by.
         cur: The cur value(s) to filter and partition by.
         predicates: A list of SQL predicates for chunking JDBC reads.
+        schema_overrides: A comma-separated list of "column_name TYPE" pairs
+            used to override the default schema during reads.
         initial_dir: The initial directory to write the data to, relative to
             the Docker container.
         final_dir: The final directory to write the repartitioned data to,
@@ -133,6 +130,7 @@ class SparkJob:
         taxyr: list[int] | None,
         cur: list[str] | None,
         predicates: list[str] | None,
+        schema_overrides: str,
         initial_dir: str,
         final_dir: str,
     ) -> None:
@@ -141,6 +139,7 @@ class SparkJob:
         self.taxyr = taxyr
         self.cur = cur
         self.predicates = predicates
+        self.schema_overrides = schema_overrides
         self.initial_dir = (
             (Path(initial_dir) / strip_table_prefix(self.table_name))
             .resolve()
@@ -224,7 +223,7 @@ class SparkJob:
                 "user": self.session.ipts_username,
                 "password": self.session.ipts_password,
                 "fetchsize": self.session.fetch_size,
-                "customSchema": SPARK_OVERRIDE_SCHEMA,
+                "customSchema": self.schema_overrides,
             },
         )
 
@@ -233,17 +232,8 @@ class SparkJob:
         if filter:
             df = df.filter(filter)
 
-        # Convert all timestamp columns to strings to match Sqoop output
-        df = df.toDF(*(c.lower() for c in df.columns))
-        for col in SPARK_TS_COLUMNS:
-            if col in df.columns:
-                df = df.withColumn(col, date_format(col, SPARK_TS_FORMAT))
-
-        # Add a timestamp column to the data to track when it was loaded
-        df = df.withColumn(
-            "loaded_at",
-            date_format(current_timestamp(), SPARK_TS_FORMAT),
-        )
+        # Convert column names to lowercase
+        df = df.withColumnsRenamed({c: c.lower() for c in df.columns})
 
         # Set a nice pretty description in the Spark UI to see which tables
         # are processing

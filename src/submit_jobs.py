@@ -10,6 +10,8 @@ from utils.helpers import (
     create_python_logger,
     load_job_definitions,
     load_predicates,
+    load_yaml,
+    strip_table_prefix,
 )
 from utils.spark import SharedSparkSession, SparkJob
 
@@ -28,6 +30,8 @@ PATH_IPTS_PASSWORD = "/run/secrets/IPTS_PASSWORD"
 PATH_INITIAL_DIR = "/tmp/target/initial"
 PATH_FINAL_DIR = "/tmp/target/final"
 PATH_GH_PEM = "/run/secrets/GH_PEM"
+PATH_DEFAULT_SETTINGS = "/tmp/config/default_settings.yaml"
+PATH_TABLE_DEFINITIONS = "/tmp/config/table_definitions.yaml"
 
 # Number of Spark read jobs to run in parallel. Limited to a small number just
 # so more jobs can start while single node jobs are running; most of the actual
@@ -35,7 +39,7 @@ PATH_GH_PEM = "/run/secrets/GH_PEM"
 NUM_PARALLEL_JOBS = 4
 
 
-def parse_args():
+def parse_args(defaults) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Submit iasWorld Spark extraction jobs"
     )
@@ -58,14 +62,14 @@ def parse_args():
         "--run-github-workflow",
         action=argparse.BooleanOptionalAction,
         required=False,
-        default=True,
+        default=defaults.get("run_github_workflow", True),
         help="Run GitHub Actions workflow to run dbt tests. Defaults to True.",
     )
     parser.add_argument(
         "--run-glue-crawler",
         action=argparse.BooleanOptionalAction,
         required=False,
-        default=True,
+        default=defaults.get("run_glue_crawler", True),
         help=(
             "Run Glue crawler to discover new partitions. Only runs if "
             "previously unseen files are uploaded to S3. Defaults to True."
@@ -75,14 +79,14 @@ def parse_args():
         "--upload-logs",
         action=argparse.BooleanOptionalAction,
         required=False,
-        default=True,
+        default=defaults.get("upload_logs", True),
         help="Toggle upload of job logs to AWS CloudWatch. Defaults to True",
     )
     parser.add_argument(
         "--upload-data",
         action=argparse.BooleanOptionalAction,
         required=False,
-        default=True,
+        default=defaults.get("upload_data", True),
         help=(
             "Toggle upload of extracted files to AWS S3. If set to False, "
             "files will still be created locally. Defaults to True."
@@ -110,6 +114,12 @@ def submit_jobs(
     time_start = time.time()
     job_definitions = load_job_definitions(json_file, json_string)
 
+    # Load table definitions and schema overrides from file
+    global_schema_overrides = load_yaml(
+        PATH_DEFAULT_SETTINGS, "global_schema_overrides"
+    )
+    table_definitions = load_yaml(PATH_TABLE_DEFINITIONS, "tables")
+
     # Each session is shared across all read jobs and manages job order,
     # credentialing, retries, etc.
     session = SharedSparkSession(
@@ -127,6 +137,7 @@ def submit_jobs(
     # Finally, append the job to a list so we can use it later
     jobs = []
     for job_name, job_definition in job_definitions.items():
+        table_name = job_definition.get("table_name")
         cur = job_definition.get("cur", DEFAULT_VAR_CUR)
         min_year = job_definition.get("min_year", DEFAULT_VAR_MIN_YEAR)
         max_year = job_definition.get("max_year", DEFAULT_VAR_MAX_YEAR)
@@ -144,12 +155,22 @@ def submit_jobs(
             load_predicates(predicates_path) if predicates_path else None
         )
 
+        # Create schema overrides, combining global and table-specific values
+        table_schema_overrides = table_definitions.get(
+            strip_table_prefix(table_name), []
+        ).get("schema_overrides", [])
+        print(global_schema_overrides)
+        schema_overrides = global_schema_overrides + table_schema_overrides
+        print(schema_overrides)
+        schema_overrides = ", ".join(schema_overrides)
+
         spark_job = SparkJob(
             session=session,
-            table_name=job_definition.get("table_name"),
+            table_name=table_name,
             taxyr=years,
             cur=cur,
             predicates=predicates,
+            schema_overrides=schema_overrides,
             initial_dir=PATH_INITIAL_DIR,
             final_dir=PATH_FINAL_DIR,
         )
@@ -221,7 +242,8 @@ def submit_jobs(
 if __name__ == "__main__":
     current_datetime = datetime.now().strftime("%Y-%m-%d_%H:%M:%S")
     app_name = f"iasworld_{current_datetime}"
-    args = parse_args()
+    default_args = load_yaml(PATH_DEFAULT_SETTINGS, "default_args")
+    args = parse_args(default_args)
     logger.info(f"Starting Spark application with arguments: {args}")
 
     try:
