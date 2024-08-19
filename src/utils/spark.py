@@ -10,7 +10,10 @@ from pyspark.sql import SparkSession
 from utils.aws import AWSClient
 from utils.helpers import (
     PATH_SPARK_LOG,
+    convert_datetime_columns,
+    convert_decimal_columns,
     create_python_logger,
+    dict_to_schema,
     strip_table_prefix,
 )
 
@@ -115,7 +118,7 @@ class SparkJob:
         taxyr: The tax year(s) to filter and partition by.
         cur: The cur value(s) to filter and partition by.
         predicates: A list of SQL predicates for chunking JDBC reads.
-        schema_overrides: A comma-separated list of "column_name TYPE" pairs
+        schema_overrides: A dictionary of "column_name: type" pairs
             used to override the default schema during reads.
         initial_dir: The initial directory to write the data to, relative to
             the Docker container.
@@ -130,7 +133,7 @@ class SparkJob:
         taxyr: list[int] | None,
         cur: list[str] | None,
         predicates: list[str] | None,
-        schema_overrides: str,
+        schema_overrides: dict[str, str],
         initial_dir: str,
         final_dir: str,
     ) -> None:
@@ -212,6 +215,13 @@ class SparkJob:
             )
         if filter:
             logger.info(f"Table {self.table_name} filter: {filter}")
+        if self.schema_overrides:
+            logger.info(
+                (
+                    f"Table {self.table_name} schema overrides: "
+                    + dict_to_schema(self.schema_overrides)
+                )
+            )
 
         # Must use the JDBC read method here since the normal spark.read()
         # doesn't accept predicates https://stackoverflow.com/a/48680140
@@ -223,17 +233,23 @@ class SparkJob:
                 "user": self.session.ipts_username,
                 "password": self.session.ipts_password,
                 "fetchsize": self.session.fetch_size,
-                "customSchema": self.schema_overrides,
+                "customSchema": dict_to_schema(self.schema_overrides),
             },
         )
+
+        # Convert column names to lowercase
+        df = df.withColumnsRenamed({c: c.lower() for c in df.columns})
+
+        # Convert datetimes and decimals to expected types, ignoring any
+        # manual overrides
+        schema_override_cols = list(self.schema_overrides.keys())
+        df = convert_datetime_columns(df, ignore_cols=schema_override_cols)
+        df = convert_decimal_columns(df, ignore_cols=schema_override_cols)
 
         # Only apply the filtering step if limiting values are actually passed
         # because it errors with an empty string or None value
         if filter:
             df = df.filter(filter)
-
-        # Convert column names to lowercase
-        df = df.withColumnsRenamed({c: c.lower() for c in df.columns})
 
         # Set a nice pretty description in the Spark UI to see which tables
         # are processing

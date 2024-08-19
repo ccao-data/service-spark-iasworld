@@ -1,9 +1,66 @@
 import json
 import logging
-import yaml
 from pathlib import Path
 
+import yaml
+from pyspark.sql import DataFrame
+from pyspark.sql.types import DecimalType, StringType, TimestampType
+
 PATH_SPARK_LOG = "/tmp/logs/spark.log"
+
+
+def convert_datetime_columns(
+    df: DataFrame, ignore_cols: list[str]
+) -> DataFrame:
+    """
+    iasWorld stores datetimes via the TIMESTAMP data type, but historically
+    we converted these columns to strings to avoid messy type incompatibility
+    with Athena. This function converts TIMESTAMP columns to UTC datetime
+    strings. Columns specified via schema overrides will ignore this conversion.
+
+    Args:
+        df: Spark DataFrame with columns to convert.
+        ignore_cols: Ignore columns specified in this list during conversion.
+
+    Returns:
+        Spark DataFrame with TIMESTAMP columns converted to STRING.
+    """
+    for field in df.schema.fields:
+        if (
+            isinstance(field.dataType, TimestampType)
+            and field.name not in ignore_cols
+        ):
+            df = df.withColumn(field.name, df[field.name].cast(StringType()))
+    return df
+
+
+def convert_decimal_columns(
+    df: DataFrame, ignore_cols: list[str]
+) -> DataFrame:
+    """
+    iasWorld stores many columns as the generic NUMBER Oracle data type, but
+    almost always uses DECIMAL(10,0) for the actual values. This function
+    automatically converts all such columns to DECIMAL(10,0). Columns specified
+    via schema overrides will ignore this conversion.
+
+    Args:
+        df: Spark DataFrame with columns to convert.
+        ignore_cols: Ignore columns specified in this list during conversion.
+
+    Returns:
+        Spark DataFrame with NUMBER columns converted to DECIMAL(10,0).
+    """
+    for field in df.schema.fields:
+        if (
+            isinstance(field.dataType, DecimalType)
+            and field.dataType.precision == 38
+            and field.dataType.scale == 10
+            and field.name not in ignore_cols
+        ):
+            df = df.withColumn(
+                field.name, df[field.name].cast(DecimalType(10, 0))
+            )
+    return df
 
 
 def create_python_logger(
@@ -48,6 +105,38 @@ def create_python_logger(
     logger.addHandler(stream_handler)
 
     return logger
+
+
+def dict_to_schema(d: dict) -> str:
+    """
+    Converts a dictionary to a string in the format 'k1 v1, k2 v2'.
+
+    Args:
+        d: Dictionary to convert.
+
+    Returns:
+        str: String representation of the dictionary.
+    """
+    return ", ".join(f"{k} {v}" for k, v in d.items())
+
+
+def flatten_schema_dicts(
+    global_overrides: list[dict] | None, table_overrides: list[dict] | None
+) -> dict:
+    """
+    Flattens a list of dictionaries into a single dictionary.
+
+    Args:
+        d: List of dictionaries to flatten.
+
+    Returns:
+        dict: A single dictionary containing all key-value pairs from the input
+        dictionaries.
+    """
+    glb = {k: v for item in (global_overrides or []) for k, v in item.items()}
+    tab = {k: v for item in (table_overrides or []) for k, v in item.items()}
+    glb.update(tab)
+    return glb
 
 
 def load_job_definitions(

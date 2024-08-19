@@ -8,6 +8,7 @@ from utils.github import GitHubClient
 from utils.helpers import (
     PATH_SPARK_LOG,
     create_python_logger,
+    flatten_schema_dicts,
     load_job_definitions,
     load_predicates,
     load_yaml,
@@ -158,11 +159,13 @@ def submit_jobs(
         # Create schema overrides, combining global and table-specific values
         table_schema_overrides = table_definitions.get(
             strip_table_prefix(table_name), []
-        ).get("schema_overrides", [])
-        print(global_schema_overrides)
-        schema_overrides = global_schema_overrides + table_schema_overrides
-        print(schema_overrides)
-        schema_overrides = ", ".join(schema_overrides)
+        ).get("schema_overrides", {})
+
+        # Combine lists of global and table schema overrides and flatten them
+        # into a single dictionary
+        schema_overrides = flatten_schema_dicts(
+            global_schema_overrides, table_schema_overrides
+        )
 
         spark_job = SparkJob(
             session=session,

@@ -1,14 +1,16 @@
 # Default arguments used for the CLI. Can be overridden using the corresponding
 # flag at runtime
 default_args:
-  run-github-workflow: True
-  run-glue-crawler: True
-  upload-logs: True
-  upload-data: True
+  run_github_workflow: False
+  run_glue_crawler: False
+  upload_logs: False
+  upload_data: False
 
-# Schema coercions used for every table. Note that these are used
-# even if the column does not exist in a given table; Spark will simply
-# ignore such overrides
+# Data type overrides are necessary to maintain parity/consistency with sqoop.
+# Schema overrides are defined in three places, with each overriding the last:
+#   1. By default, NUMBER Oracle types are converted to DECIMAL(10,0)
+#      and TIMESTAMP Oracle types are converted to STRING
+#   2. Global schema overrides, as defined below
+#   3. Table schema overrides, defined in table_definitions.yaml
 global_schema_overrides:
-  - iasw_id DECIMAL(38, 0)
-  - wen STRING
+  - deactivat: STRING
