@@ -6,12 +6,11 @@ from pathlib import Path
 
 from pyarrow import dataset as ds
 from pyspark.sql import SparkSession
+from pyspark.sql.types import DecimalType, StringType, TimestampType
 
 from utils.aws import AWSClient
 from utils.helpers import (
     PATH_SPARK_LOG,
-    convert_datetime_columns,
-    convert_decimal_columns,
     create_python_logger,
     dict_to_schema,
     strip_table_prefix,
@@ -240,11 +239,27 @@ class SparkJob:
         # Convert column names to lowercase
         df = df.withColumnsRenamed({c: c.lower() for c in df.columns})
 
-        # Convert datetimes and decimals to expected types, ignoring any
-        # manual overrides
+        # Convert datetimes and decimals to expected types, but defer to any
+        # manual overrides. See README section on data types for more info
         schema_override_cols = list(self.schema_overrides.keys())
-        df = convert_datetime_columns(df, ignore_cols=schema_override_cols)
-        df = convert_decimal_columns(df, ignore_cols=schema_override_cols)
+        for field in df.schema.fields:
+            if (
+                isinstance(field.dataType, TimestampType)
+                and field.name not in schema_override_cols
+            ):
+                df = df.withColumn(
+                    field.name, df[field.name].cast(StringType())
+                )
+
+            if (
+                isinstance(field.dataType, DecimalType)
+                and field.dataType.precision == 38
+                and field.dataType.scale == 10
+                and field.name not in schema_override_cols
+            ):
+                df = df.withColumn(
+                    field.name, df[field.name].cast(DecimalType(10, 0))
+                )
 
         # Only apply the filtering step if limiting values are actually passed
         # because it errors with an empty string or None value
