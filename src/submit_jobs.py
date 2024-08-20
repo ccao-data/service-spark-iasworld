@@ -156,13 +156,11 @@ def submit_jobs(
             load_predicates(predicates_path) if predicates_path else None
         )
 
-        # Create schema overrides, combining global and table-specific values
+        # Combine lists of global and table schema overrides and flatten them
+        # into a single dictionary
         table_schema_overrides = table_definitions.get(
             strip_table_prefix(table_name), []
         ).get("schema_overrides", {})
-
-        # Combine lists of global and table schema overrides and flatten them
-        # into a single dictionary
         schema_overrides = flatten_schema_dicts(
             global_schema_overrides, table_schema_overrides
         )
