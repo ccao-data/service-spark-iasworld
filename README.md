@@ -32,11 +32,12 @@ contain multiple extract jobs. Once all jobs for a batch are complete, we also
 > [!NOTE]
 > Before attempting to submit batches to the cluster, first make sure the Spark
 > Docker Compose stack is active by running `docker compose up -d` in the
-> repository. Also, make sure all secret and `.env` files are populated.
+> repository. Also, make sure all secret and `.env` files are populated, see
+> [Files not included](#files-not-included) for more information.
 
 `service-spark-iasworld` job batches are submitted via JSON, either as a string
 or as a file. All batches should have the format below. Note that the name
-of the job itself (e.g. `job2`) is arbitrary.
+of the job itself (e.g. `job2` below) is arbitrary.
 
 ```json
 {
@@ -81,7 +82,8 @@ of the job itself (e.g. `job2`) is arbitrary.
 
 The example batch above contains two separate jobs, one per table. If you want
 to add additional tables/jobs to the batch, you can manually add the
-corresponding table objects and modify the fields as listed above.
+corresponding table objects and modify the fields as
+[listed above](#field-definitions).
 
 In practice, modifying JSON is a bit of a pain, so we store long-lived
 batch and job definitions in YAML, then convert them to JSON using `yq`.
@@ -113,15 +115,13 @@ docker exec spark-node-master ./submit.sh --json-file /tmp/jobs.json
 
 The command line interface also has multiple optional flags:
 
-- `--run-github-workflow/--no-run-github-workflow` - Toggles whether or not
-  to run the [`test_dbt_models`](https://github.com/ccao-data/data-architecture/blob/master/.github/workflows/test_dbt_models.yaml)
-  workflow on batch completion.
-- `--run-glue-crawler/--no-run-glue-crawler` - Toggles whether or not to run
-  the iasWorld Glue crawler on batch completion.
-- `--upload-data/--no-upload-data` - Toggles whether or not to upload extracted
-  data to iasWorld S3 bucket.
-- `--upload-logs/--no-upload-logs` - Toggles whether or not to upload resulting
-  logs to AWS CloudWatch.
+- `--run-github-workflow/--no-run-github-workflow` - Run the [`test_dbt_models`](https://github.com/ccao-data/data-architecture/blob/master/.github/workflows/test_dbt_models.yaml)
+  workflow on batch completion?
+- `--run-glue-crawler/--no-run-glue-crawler` - Run the iasWorld Glue crawler
+  on batch completion?
+- `--upload-data/--no-upload-data` - Upload extracted data to the iasWorld S3
+  bucket?
+- `--upload-logs/--no-upload-logs` - Upload batch logs to AWS CloudWatch?
 
 ## Additional notes
 
@@ -185,7 +185,7 @@ purposes. If you want to use this repository, you will need to populate the
 following:
 
 - `drivers/ojdbc8.jar` - This is the JDBC driver for our Oracle backend and
-  can be found for free on [Oracle's website](https://www.oracle.com/ca-en/database/technologies/appdev/jdbc-downloads.html).
+  can be found for free on [Oracle's site](https://www.oracle.com/ca-en/database/technologies/appdev/jdbc-downloads.html).
 - `secrets/` - These are credential files needed to connect to other systems.
 - `.env` - This file sets a few non-critical but still private options.
 
