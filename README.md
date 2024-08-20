@@ -1,3 +1,7 @@
+- example job submission
+- add GH PEM
+- table schemas and options
+
 # Spark Extractor for iasWorld
 
 This repository contains the dependencies and code necessary to run
@@ -87,6 +91,22 @@ workflow using `yq`.
   `max_year`, and/or `cur` values that are set. If these values are all null,
   then the table is returned as a single file e.g. `$TABLE/part-0.parquet`.
 
+## Scheduling
+
+Table extractions are schedule via
+[`cron`](https://man7.org/linux/man-pages/man8/cron.8.html). To edit the
+schedule file, use `crontab -e`. The example crontab file below schedules daily
+jobs for frequently updated tables and weekly ones for rarely-updated tables.
+Note that the jobs currently _must_ be run as user 1003.
+
+```bash
+# Extract recent years from frequently used tables on weekdays at 1 AM CST
+0 6 * * 1,2,3,4,5 docker exec spark-node-master ./submit.sh --json-string "$(yq -o=json .default_jobs /full/path/to/default_jobs.yaml)"
+
+# Extract all tables on Saturday at 1 AM CST
+0 6 * * 6 docker exec spark-node-master ./submit.sh --json-string "$(yq -o=json .weekend_jobs /full/path/to/default_jobs.yaml)"
+```
+
 ## Structure
 
 Here's a breakdown of important files and the purpose of each one:
@@ -101,19 +121,24 @@ Here's a breakdown of important files and the purpose of each one:
 ├── run.sh                     - Entrypoint shell script to create Spark jobs
 ├── .github/                   - GitHub Actions workflows for linting, builds, etc.
 ├── config/
-│   ├── default_jobs.yaml      - Definitions used to configure Spark jobs per table
+│   ├── default_jobs.yaml      - Define batches of Spark jobs (one per table)
 │   ├── default_predicates.sql - List of mutually exclusive SQL BETWEEN expressions
-│   └── spark-defaults.conf    - Spark memory and driver settings
+│   ├── default_settings.yaml  - Runtime defaults and schema overrides
+│   ├── spark-defaults.conf    - Spark memory and driver settings
+│   └── table_definitions.yaml - Possible job values per table and schema overrides
 ├── drivers/
 │   └── ojdbc8.jar             - Not included, but necessary to connect to iasWorld
 ├── secrets/
 │   ├── AWS_CREDENTIALS_FILE   - AWS credentials config file specific to this job
+│   ├── GH_PEM                 - GitHub PEM file used to authorize workflow dispatch
 │   └── IPTS_PASSWORD          - Password file loaded at runtime into containers
 ├── src/
 │   ├── submit_jobs.py         - Job submission entrypoint. Takes JSON as input
 │   ├── submit.sh              - Helper to launch jobs using spark-submit
 │   └── utils/
-│       ├── helpers.py         - Miscellaneous helper files
+│       ├── aws.py             - AWS client class for triggering Glue crawlers
+│       ├── github.py          - GitHub client class for running Actions workflows
+│       ├── helpers.py         - Miscellaneous helper functions
 │       └── spark.py           - Spark job and session classes
 └── target/
     ├── final/                 - Landing directory after Parquet repartitioning
