@@ -2,6 +2,8 @@ import json
 import logging
 from pathlib import Path
 
+import yaml
+
 PATH_SPARK_LOG = "/tmp/logs/spark.log"
 
 
@@ -48,6 +50,10 @@ def create_python_logger(
     logger.addHandler(stream_handler)
 
     return logger
+
+
+def dict_to_schema(d: dict) -> str:
+    return ", ".join(f"{k} {v}" for k, v in d.items())
 
 
 def load_job_definitions(
@@ -106,6 +112,22 @@ def load_predicates(path: str) -> list[str]:
         predicates = [line.strip() for line in file.readlines()]
 
     return predicates
+
+
+def load_yaml(path: str, key: str):
+    """
+    Fetch values from from a static YAML file.
+
+    Args:
+        path: String path to a YAML file within the `config/` directory.
+        key: Arbitrary key to fetch values from the YAML file.
+
+    Returns: Values from the corresponding YAML key.
+    """
+    with open(path, mode="r") as file:
+        data = yaml.safe_load(file)
+    values = data.get(key)
+    return values
 
 
 def strip_table_prefix(table_name: str) -> str:
