@@ -112,25 +112,6 @@ def dict_to_schema(d: dict) -> str:
     return ", ".join(f"{k} {v}" for k, v in d.items())
 
 
-def flatten_schema_dicts(
-    global_overrides: list[dict] | None, table_overrides: list[dict] | None
-) -> dict:
-    """
-    Flattens a list of dictionaries into a single dictionary.
-
-    Args:
-        d: List of dictionaries to flatten.
-
-    Returns:
-        dict: A single dictionary containing all key-value pairs from the input
-        dictionaries.
-    """
-    glb = {k: v for item in (global_overrides or []) for k, v in item.items()}
-    tab = {k: v for item in (table_overrides or []) for k, v in item.items()}
-    glb.update(tab)
-    return glb
-
-
 def load_job_definitions(
     json_file: str | None, json_string: str | None
 ) -> dict:

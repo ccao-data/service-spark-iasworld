@@ -19,8 +19,8 @@ tables:
     has_cur: true
     has_parid: true
     schema_overrides:
-      - xcoord: DECIMAL(15,8)
-      - ycoord: DECIMAL(15,8)
+      xcoord: DECIMAL(15,8)
+      ycoord: DECIMAL(15,8)
   aprval:
     min_year: *global_min_year
     has_cur: true
@@ -50,9 +50,9 @@ tables:
     has_cur: false
     has_parid: true
     schema_overrides:
-      - xcoord: DECIMAL(15,8)
-      - ycoord: DECIMAL(15,8)
-      - zcoord: DECIMAL(15,8)
+      xcoord: DECIMAL(15,8)
+      ycoord: DECIMAL(15,8)
+      zcoord: DECIMAL(15,8)
   cvown:
     min_year: 2001
     has_cur: false
@@ -110,9 +110,9 @@ tables:
     has_cur: true
     has_parid: true
     schema_overrides:
-      - xcoord: DECIMAL(15,8)
-      - ycoord: DECIMAL(15,8)
-      - zcoord: DECIMAL(15,8)
+      xcoord: DECIMAL(15,8)
+      ycoord: DECIMAL(15,8)
+      zcoord: DECIMAL(15,8)
   lpmod:
     min_year: null
     has_cur: false
