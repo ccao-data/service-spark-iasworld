@@ -67,6 +67,7 @@ def create_python_logger(
     name: str, log_file_path: str = PATH_SPARK_LOG
 ) -> logging.Logger:
     """
+    Sets up a logger with the same output format and location as the primary
     Spark logger from the JVM. Also used as a fallback in case any part of the
     main job loop fails.
 
@@ -108,15 +109,6 @@ def create_python_logger(
 
 
 def dict_to_schema(d: dict) -> str:
-    """
-    Converts a dictionary to a string in the format 'k1 v1, k2 v2'.
-
-    Args:
-        d: Dictionary to convert.
-
-    Returns:
-        str: String representation of the dictionary.
-    """
     return ", ".join(f"{k} {v}" for k, v in d.items())
 
 

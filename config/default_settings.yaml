@@ -14,3 +14,4 @@ default_args:
 #   3. Table schema overrides, defined in table_definitions.yaml
 global_schema_overrides:
   - deactivat: STRING
+  - taxyr: STRING
