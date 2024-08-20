@@ -15,14 +15,17 @@ providing a 1-1 mirror of the system-of-record for analytical queries.
 
 Jobs are submitted in "batches" (called applications by Spark). Each batch may
 contain multiple extract jobs. Once all jobs for a batch are complete, we also
-(optionally) trigger two additional processes:
+(optionally) trigger four additional processes. In order:
 
-- Run an AWS Glue crawler to update table data types and/or partitions in
-  the Glue data catalog (which powers Athena). This process only occurs if
-  _new_ files are uploaded i.e. those not previously seen on S3.
-- Run a [dbt testing workflow](https://github.com/ccao-data/data-architecture/blob/master/.github/workflows/test_dbt_models.yaml)
-  on GitHub Actions. This automatically tests the iasWorld data for issues and
-  outputs the results to various tables and reports.
+1. Upload the extracted Parquet files to AWS S3. Uploads to the bucket and
+   prefix specified in the `.env` file.
+2. Run an AWS Glue crawler to update table data types and/or partitions in
+   the Glue data catalog (which powers Athena). This process only occurs if
+   _new_ files are uploaded i.e. those not previously seen on S3.
+3. Run a [dbt testing workflow](https://github.com/ccao-data/data-architecture/blob/master/.github/workflows/test_dbt_models.yaml)
+   on GitHub Actions. This automatically tests the iasWorld data for issues and
+   outputs the results to various tables and reports.
+4. Upload the final logs to AWS CloudWatch.
 
 ## Submitting job batches
 
@@ -89,7 +92,36 @@ batches:
 2. A weekend batch that pulls _all_ tables and years.
 3. A test batch that pulls a subset of tables with representative situations.
 
-The `./run.sh` script contains an example of using `yq` to submit jobs.
+### Submitting via the command line
+
+Batches are submitted to the Spark Docker cluster via the command line. The
+main job submission argument is either `--json-string` or `--json-file`.
+For example, to submit the test jobs in `config/default_jobs.yaml` via
+`--json-string`, run the following command:
+
+```bash
+docker exec spark-node-master ./submit.sh \
+    --json-string "$(yq -o=json .test_jobs ./config/default_jobs.yaml)"
+```
+
+Or from a file:
+
+```bash
+yq -o=json .test_jobs ./config/default_jobs.yaml > /tmp/jobs.json
+docker exec spark-node-master ./submit.sh --json-file /tmp/jobs.json
+```
+
+The command line interface also has multiple optional flags:
+
+- `--run-github-workflow/--no-run-github-workflow` - Toggles whether or not
+  to run the [`test_dbt_models`](https://github.com/ccao-data/data-architecture/blob/master/.github/workflows/test_dbt_models.yaml)
+  workflow on batch completion.
+- `--run-glue-crawler/--no-run-glue-crawler` - Toggles whether or not to run
+  the iasWorld Glue crawler on batch completion.
+- `--upload-data/--no-upload-data` - Toggles whether or not to upload extracted
+  data to iasWorld S3 bucket.
+- `--upload-logs/--no-upload-logs` - Toggles whether or not to upload resulting
+  logs to AWS CloudWatch.
 
 ## Additional notes
 
@@ -111,6 +143,13 @@ one:
    take precedence over all other overrides. They are defined in
    `config/table_definitions.yaml`.
 
+> [!WARNING]
+> `NUMERIC` types are implicitly converted to `DECIMAL(10,0)` because as of
+> 2024, all `NUMERIC` columns without a specified precision and scale are
+> actually just integers. If this changes in the future, it's possible that
+> we could begin to silently truncate numbers via this implicit type
+> conversion. As such, stay on top of schema updates from the iasWorld team.
+
 ### Constructing jobs
 
 Predicates, filters, and partitions are Spark concepts used to construct
@@ -120,23 +159,35 @@ concept and how to change them if needed:
 
 - **Predicates** are SQL statements used to chunk a table during reads
   against the iasWorld database. The statements define mutually exclusive
-  queries that run in parallel (in order to speed up query execution).<br><br>
+  queries that run in parallel (in order to speed up query execution).
   Predicates are defined via a file of SQL statements in the `config/`
   directory, then passed to each table job via a file path.
 - **Filters** are logic conditions included in queries to the database. Spark
   uses [predicate pushdown](https://airbyte.com/data-engineering-resources/predicate-pushdown)
   to compose the _predicates_ and _filter_ for each query into a single SQL
   statement. Think of filters as a SQL WHERE clause applied across all the
-  predicate chunks specified above.<br><br>
+  predicate chunks specified above.
   Filters are constructed automatically from any `min_year`, `max_year`,
   and/or `cur` values passed as part of a job definition. If these values are
   all null, then the entire table is returned.
 - **Partitions** define how the output Parquet files returned from each should
   be broken up. We use Hive partitioning by default, which yields partitions
-  with the structure `$TABLE/taxyr=$YEAR/cur=$CUR_VALUE/part-0.parquet`.<br><br>
+  with the structure `$TABLE/taxyr=$YEAR/cur=$CUR_VALUE/part-0.parquet`.
   Like filters, partitions are determined automatically via any `min_year`,
   `max_year`, and/or `cur` values that are set. If these values are all null,
   then the table is returned as a single file e.g. `$TABLE/part-0.parquet`.
+
+### Files not included
+
+Some necessary setup and credential files are not included in this repository
+for security reasons. Templated versions are included for instructional
+purposes. If you want to use this repository, you will need to populate the
+following:
+
+- `drivers/ojdbc8.jar` - This is the JDBC driver for our Oracle backend and
+  can be found for free on [Oracle's website](https://www.oracle.com/ca-en/database/technologies/appdev/jdbc-downloads.html).
+- `secrets/` - These are credential files needed to connect to other systems.
+- `.env` - This file sets a few non-critical but still private options.
 
 ## Scheduling
 
