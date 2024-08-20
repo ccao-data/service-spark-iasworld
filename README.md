@@ -1,8 +1,8 @@
 # Spark Extractor for iasWorld
 
 This repository contains the dependencies and code necessary to run
-[Spark](https://spark.apache.org/docs/latest/) extract jobs targeting the
-CCAO's iasWorld system-of-record. It is a replacement for
+[Spark](https://spark.apache.org/docs/latest/) extract jobs targeting Cook
+County's iasWorld property system-of-record. It is a replacement for
 [`service-sqoop-iasworld`](https://github.com/ccao-data/service-sqoop-iasworld),
 which is now deprecated.
 
@@ -11,17 +11,18 @@ Each Spark job pulls an iasWorld table (or part of a table) via
 writes it as [Hive-partitioned](https://duckdb.org/docs/data/partitioning/hive_partitioning.html)
 Parquet files to [AWS S3](https://aws.amazon.com/s3/). The Data Department then
 queries the Parquet files using [AWS Athena](https://aws.amazon.com/athena),
-giving us a 1-1 mirror of the system-of-record for analytical queries.
+providing a 1-1 mirror of the system-of-record for analytical queries.
 
 Jobs are submitted in "batches" (called applications by Spark). Each batch may
 contain multiple extract jobs. Once all jobs for a batch are complete, we also
 (optionally) trigger two additional processes:
 
-- Run an AWS Glue crawler to update table data types and/or partitions. This
-  only occurs if _new_ files are uploaded i.e. ones not previously seen on S3.
+- Run an AWS Glue crawler to update table data types and/or partitions in
+  the Glue data catalog (which powers Athena). This process only occurs if
+  _new_ files are uploaded i.e. those not previously seen on S3.
 - Run a [dbt testing workflow](https://github.com/ccao-data/data-architecture/blob/master/.github/workflows/test_dbt_models.yaml)
-  on GitHub Actions. This automatically tests the new data for issues and
-  outputs results to various tables and reports.
+  on GitHub Actions. This automatically tests the iasWorld data for issues and
+  outputs the results to various tables and reports.
 
 ## Submitting job batches
 
@@ -31,7 +32,8 @@ contain multiple extract jobs. Once all jobs for a batch are complete, we also
 > repository. Also, make sure all secret and `.env` files are populated.
 
 `service-spark-iasworld` job batches are submitted via JSON, either as a string
-or as a file. All batches should have the following format:
+or as a file. All batches should have the format below. Note that the name
+of the job itself (e.g. `job2`) is arbitrary.
 
 ```json
 {
@@ -74,14 +76,18 @@ or as a file. All batches should have the following format:
 
 ### Creating batch JSON
 
-The batch above contains two separate jobs, one per table. If you want to add
-additional tables to the batch, you can manually add corresponding table
-objects and modify the fields and listed above.
+The example batch above contains two separate jobs, one per table. If you want
+to add additional tables/jobs to the batch, you can manually add the
+corresponding table objects and modify the fields as listed above.
 
 In practice, modifying JSON is a bit of a pain, so we store long-lived
-batch/job definitions in YAML, then convert them to JSON using `yq`.
+batch and job definitions in YAML, then convert them to JSON using `yq`.
 The file `config/default_jobs.yaml` contains definitions for three common job
-batches we use: one for daily pulls, one for weekends, and one for testing.
+batches:
+
+1. A daily batch that pulls the most recent 2 years of each critical table.
+2. A weekend batch that pulls _all_ tables and years.
+3. A test batch that pulls a subset of tables with representative situations.
 
 The `./run.sh` script contains an example of using `yq` to submit jobs.
 
@@ -91,12 +97,13 @@ The `./run.sh` script contains an example of using `yq` to submit jobs.
 
 Spark automatically attempts to mirror the data types within iasWorld using
 its own equivalent types. However, on occasion, it may use an incorrect or
-undesirable type. In such cases, this repo provides a hierarchical system of
-column-level schema/type overrides, with each type overriding the previous one:
+undesirable type. In such cases, this repository provides a hierarchical system
+of column-level schema/type overrides, with each type overriding the previous
+one:
 
 1. By default, all `NUMBER` Oracle types are converted to `DECIMAL(10,0)`
-   and `TIMESTAMP` Oracle types are converted to `STRING`. The behavior is
-   ignored if an override is specified via the options below.
+   and `TIMESTAMP` Oracle types are converted to `STRING`. This behavior is
+   ignored for columns with an override specified via the options below.
 2. Global schema overrides apply to all columns of a given name across all
    tables. They can be specified even for columns that do not exist in every
    table. They are defined in `config/default_settings.yaml`.
@@ -113,31 +120,32 @@ concept and how to change them if needed:
 
 - **Predicates** are SQL statements used to chunk a table during reads
   against the iasWorld database. The statements define mutually exclusive
-  queries that run in parallel (in order to speed up query execution).<br>
+  queries that run in parallel (in order to speed up query execution).<br><br>
   Predicates are defined via a file of SQL statements in the `config/`
   directory, then passed to each table job via a file path.
 - **Filters** are logic conditions included in queries to the database. Spark
   uses [predicate pushdown](https://airbyte.com/data-engineering-resources/predicate-pushdown)
   to compose the _predicates_ and _filter_ for each query into a single SQL
   statement. Think of filters as a SQL WHERE clause applied across all the
-  predicate chunks specified above.<br>
+  predicate chunks specified above.<br><br>
   Filters are constructed automatically from any `min_year`, `max_year`,
   and/or `cur` values passed as part of a job definition. If these values are
   all null, then the entire table is returned.
 - **Partitions** define how the output Parquet files returned from each should
   be broken up. We use Hive partitioning by default, which yields partitions
-  with the structure `$TABLE/taxyr=$YEAR/cur=$CUR_VALUE/part-0.parquet`.<br>
+  with the structure `$TABLE/taxyr=$YEAR/cur=$CUR_VALUE/part-0.parquet`.<br><br>
   Like filters, partitions are determined automatically via any `min_year`,
   `max_year`, and/or `cur` values that are set. If these values are all null,
   then the table is returned as a single file e.g. `$TABLE/part-0.parquet`.
 
 ## Scheduling
 
-Table extractions are schedule via
+Batches are currently scheduled via
 [`cron`](https://man7.org/linux/man-pages/man8/cron.8.html). To edit the
-schedule file, use `crontab -e`. The example crontab file below schedules daily
-jobs for frequently updated tables and weekly ones for rarely-updated tables.
-Note that the jobs currently _must_ be run as user 1003.
+schedule file, use `crontab -e` as the main server user. The example crontab
+file below schedules daily jobs for frequently updated tables and weekly ones
+for rarely-updated tables. Note that the jobs currently _must_ be run as
+user 1003.
 
 ```bash
 # Extract recent years from frequently used tables on weekdays at 1 AM CST
