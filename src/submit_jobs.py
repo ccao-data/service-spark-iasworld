@@ -20,7 +20,7 @@ logger = create_python_logger(__name__)
 # Default values for jobs, used per job if not explicitly set in the job's
 # input JSON. CUR and YEAR values are used for partitioning and filtering
 # if they are set
-DEFAULT_VAR_MIN_YEAR = 1999
+DEFAULT_VAR_MIN_YEAR = 1800
 DEFAULT_VAR_MAX_YEAR = datetime.now().year
 DEFAULT_VAR_CUR = ["Y", "N", "D"]
 DEFAULT_VAR_PREDICATES_PATH = "default_predicates.sql"

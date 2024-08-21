@@ -6,6 +6,7 @@ from pathlib import Path
 
 from pyarrow import dataset as ds
 from pyspark.sql import SparkSession
+from pyspark.sql.functions import current_timestamp, date_format
 from pyspark.sql.types import DecimalType, StringType, TimestampType
 
 from utils.aws import AWSClient
@@ -173,7 +174,8 @@ class SparkJob:
         """
         filter = []
         if self.taxyr:
-            filter.append(f"taxyr IN ({', '.join(map(str, self.taxyr))})")
+            min_year, max_year = self.taxyr[0], self.taxyr[-1]
+            filter.append(f"taxyr BETWEEN {min_year} AND {max_year}")
         if self.cur:
             quoted_cur = [f"'{x}'" for x in self.cur]
             filter.append(f"cur IN ({', '.join(quoted_cur)})")
@@ -260,6 +262,12 @@ class SparkJob:
                 df = df.withColumn(
                     field.name, df[field.name].cast(DecimalType(10, 0))
                 )
+
+        # Add a timestamp column to the data to track when it was loaded
+        df = df.withColumn(
+            "loaded_at",
+            date_format(current_timestamp(), "yyyy-MM-dd HH:mm:ss.SSS"),
+        )
 
         # Only apply the filtering step if limiting values are actually passed
         # because it errors with an empty string or None value
