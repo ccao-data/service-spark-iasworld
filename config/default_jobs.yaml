@@ -4,215 +4,215 @@ define:
 # Jobs that run daily at 1AM, typically getting the 2 most
 # recent years of data for critical tables
 default_jobs:
-  addn:
-    table_name: iasworld.addn
+  ADDN:
+    table_name: iasworld.ADDN
     min_year: *min_year
-  aprval:
-    table_name: iasworld.aprval
+  APRVAL:
+    table_name: iasworld.APRVAL
     min_year: *min_year
-  asmt_all:
-    table_name: iasworld.asmt_all
+  ASMT_ALL:
+    table_name: iasworld.ASMT_ALL
     min_year: *min_year
-  asmt_hist:
-    table_name: iasworld.asmt_hist
+  ASMT_HIST:
+    table_name: iasworld.ASMT_HIST
     min_year: *min_year
-  comdat:
-    table_name: iasworld.comdat
+  COMDAT:
+    table_name: iasworld.COMDAT
     min_year: *min_year
-  cvleg:
-    table_name: iasworld.cvleg
+  CVLEG:
+    table_name: iasworld.CVLEG
     min_year: *min_year
     cur: null
-  dweldat:
-    table_name: iasworld.dweldat
+  DWELDAT:
+    table_name: iasworld.DWELDAT
     min_year: *min_year
-  enter:
-    table_name: iasworld.enter
+  ENTER:
+    table_name: iasworld.ENTER
     min_year: null
     max_year: null
     cur: null
     predicates_path: null
-  htpar:
-    table_name: iasworld.htpar
+  HTPAR:
+    table_name: iasworld.HTPAR
     min_year: *min_year
-  land:
-    table_name: iasworld.land
+  LAND:
+    table_name: iasworld.LAND
     min_year: *min_year
-  legdat:
-    table_name: iasworld.legdat
+  LEGDAT:
+    table_name: iasworld.LEGDAT
     min_year: *min_year
-  oby:
-    table_name: iasworld.oby
+  OBY:
+    table_name: iasworld.OBY
     min_year: *min_year
-  owndat:
-    table_name: iasworld.owndat
+  OWNDAT:
+    table_name: iasworld.OWNDAT
     min_year: *min_year
-  pardat:
-    table_name: iasworld.pardat
+  PARDAT:
+    table_name: iasworld.PARDAT
     min_year: *min_year
-  permit:
-    table_name: iasworld.permit
+  PERMIT:
+    table_name: iasworld.PERMIT
     min_year: null
     max_year: null
     cur: null
     predicates_path: null
-  sales:
-    table_name: iasworld.sales
+  SALES:
+    table_name: iasworld.SALES
     min_year: null
     max_year: null
-  splcom:
-    table_name: iasworld.splcom
+  SPLCOM:
+    table_name: iasworld.SPLCOM
     min_year: *min_year
     cur: null
     predicates_path: null
 
 # Jobs that run on the weekend, fully refreshing all critical tables
 weekend_jobs:
-  aasysjur:
-    table_name: iasworld.aasysjur
+  AASYSJUR:
+    table_name: iasworld.AASYSJUR
     min_year: null
     max_year: null
     cur: null
     predicates_path: null
-  addn:
-    table_name: iasworld.addn
-  addrindx:
-    table_name: iasworld.addrindx
-  aprval:
-    table_name: iasworld.aprval
-  asmt_all:
-    table_name: iasworld.asmt_all
-  asmt_hist:
-    table_name: iasworld.asmt_hist
-  cname:
-    table_name: iasworld.cname
+  ADDN:
+    table_name: iasworld.ADDN
+  ADDRINDX:
+    table_name: iasworld.ADDRINDX
+  APRVAL:
+    table_name: iasworld.APRVAL
+  ASMT_ALL:
+    table_name: iasworld.ASMT_ALL
+  ASMT_HIST:
+    table_name: iasworld.ASMT_HIST
+  CNAME:
+    table_name: iasworld.CNAME
     min_year: null
     max_year: null
     predicates_path: null
-  comdat:
-    table_name: iasworld.comdat
-  comnt:
-    table_name: iasworld.comnt
-    min_year: null
-    max_year: null
-    cur: null
-    predicates_path: null
-  cvleg:
-    table_name: iasworld.cvleg
-    cur: null
-  cvown:
-    table_name: iasworld.cvown
-    cur: null
-    predicates_path: null
-  cvtran:
-    table_name: iasworld.cvtran
-    cur: null
-    predicates_path: null
-  dedit:
-    table_name: iasworld.dedit
+  COMDAT:
+    table_name: iasworld.COMDAT
+  COMNT:
+    table_name: iasworld.COMNT
     min_year: null
     max_year: null
     cur: null
     predicates_path: null
-  dweldat:
-    table_name: iasworld.dweldat
-  enter:
-    table_name: iasworld.enter
+  CVLEG:
+    table_name: iasworld.CVLEG
+    cur: null
+  CVOWN:
+    table_name: iasworld.CVOWN
+    cur: null
+    predicates_path: null
+  CVTRAN:
+    table_name: iasworld.CVTRAN
+    cur: null
+    predicates_path: null
+  DEDIT:
+    table_name: iasworld.DEDIT
     min_year: null
     max_year: null
     cur: null
     predicates_path: null
-  exadmn:
-    table_name: iasworld.exadmn
-  exapp:
-    table_name: iasworld.exapp
-  excode:
-    table_name: iasworld.excode
-    predicates_path: null
-  exdet:
-    table_name: iasworld.exdet
-  htagnt:
-    table_name: iasworld.htagnt
+  DWELDAT:
+    table_name: iasworld.DWELDAT
+  ENTER:
+    table_name: iasworld.ENTER
     min_year: null
     max_year: null
     cur: null
     predicates_path: null
-  htdates:
-    table_name: iasworld.htdates
-    cur: null
-  htpar:
-    table_name: iasworld.htpar
-  land:
-    table_name: iasworld.land
-  legdat:
-    table_name: iasworld.legdat
-  lpmod:
-    table_name: iasworld.lpmod
+  EXADMN:
+    table_name: iasworld.EXADMN
+  EXAPP:
+    table_name: iasworld.EXAPP
+  EXCODE:
+    table_name: iasworld.EXCODE
+    predicates_path: null
+  EXDET:
+    table_name: iasworld.EXDET
+  HTAGNT:
+    table_name: iasworld.HTAGNT
     min_year: null
     max_year: null
     cur: null
     predicates_path: null
-  lpnbhd:
-    table_name: iasworld.lpnbhd
+  HTDATES:
+    table_name: iasworld.HTDATES
+    cur: null
+  HTPAR:
+    table_name: iasworld.HTPAR
+  LAND:
+    table_name: iasworld.LAND
+  LEGDAT:
+    table_name: iasworld.LEGDAT
+  LPMOD:
+    table_name: iasworld.LPMOD
     min_year: null
     max_year: null
     cur: null
     predicates_path: null
-  oby:
-    table_name: iasworld.oby
-  owndat:
-    table_name: iasworld.owndat
-  pardat:
-    table_name: iasworld.pardat
-  permit:
-    table_name: iasworld.permit
+  LPNBHD:
+    table_name: iasworld.LPNBHD
     min_year: null
     max_year: null
     cur: null
     predicates_path: null
-  rcoby:
-    table_name: iasworld.rcoby
+  OBY:
+    table_name: iasworld.OBY
+  OWNDAT:
+    table_name: iasworld.OWNDAT
+  PARDAT:
+    table_name: iasworld.PARDAT
+  PERMIT:
+    table_name: iasworld.PERMIT
     min_year: null
     max_year: null
     cur: null
     predicates_path: null
-  sales:
-    table_name: iasworld.sales
+  RCOBY:
+    table_name: iasworld.RCOBY
     min_year: null
     max_year: null
-  splcom:
-    table_name: iasworld.splcom
     cur: null
     predicates_path: null
-  valclass:
-    table_name: iasworld.valclass
+  SALES:
+    table_name: iasworld.SALES
+    min_year: null
+    max_year: null
+  SPLCOM:
+    table_name: iasworld.SPLCOM
+    cur: null
+    predicates_path: null
+  VALCLASS:
+    table_name: iasworld.VALCLASS
     cur: null
     predicates_path: null
 
 # Jobs with a good mix of situations used for testing
 test_jobs:
-  aasysjur:
-    table_name: iasworld.aasysjur
+  AASYSJUR:
+    table_name: iasworld.AASYSJUR
     min_year: null
     max_year: null
     cur: null
     predicates_path: null
-  addn:
-    table_name: iasworld.addn
+  ADDN:
+    table_name: iasworld.ADDN
     min_year: *min_year
-  addrindx:
-    table_name: iasworld.addrindx
+  ADDRINDX:
+    table_name: iasworld.ADDRINDX
     min_year: 2011
     max_year: 2013
-  aprval:
-    table_name: iasworld.aprval
+  APRVAL:
+    table_name: iasworld.APRVAL
     max_year: 2004
     cur: ["Y"]
-  sales:
-    table_name: iasworld.sales
+  SALES:
+    table_name: iasworld.SALES
     min_year: null
     max_year: null
-  valclass:
-    table_name: iasworld.valclass
+  VALCLASS:
+    table_name: iasworld.VALCLASS
     cur: null
     predicates_path: null
