@@ -123,6 +123,9 @@ The command line interface also has multiple optional flags:
   bucket?
 - `--upload-logs/--no-upload-logs` - Upload batch logs to AWS CloudWatch?
 
+The default values for these flags are set in the `config/default_settings.yaml`
+file. The are all `True` by default.
+
 ## Additional notes
 
 ### Data types
@@ -180,9 +183,9 @@ concept and how to change them if needed:
 ### Files not included
 
 Some necessary setup and credential files are not included in this repository
-for security reasons. Templated versions are included for instructional
-purposes. If you want to use this repository, you will need to populate the
-following:
+for security or licensing reasons. Templated versions are included for
+instructional purposes. If you want to use this repository, you will need to
+populate the following:
 
 - `drivers/ojdbc8.jar` - This is the JDBC driver for our Oracle backend and
   can be found for free on [Oracle's site](https://www.oracle.com/ca-en/database/technologies/appdev/jdbc-downloads.html).
