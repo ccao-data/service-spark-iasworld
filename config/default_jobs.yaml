@@ -1,5 +1,5 @@
 define:
-  min_year: &min_year 2022
+  min_year: &min_year 2023
 
 # Jobs that run daily at 1AM, typically getting the 2 most
 # recent years of data for critical tables
