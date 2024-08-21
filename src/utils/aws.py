@@ -81,10 +81,10 @@ class AWSClient:
         """
         try:
             with open(log_file_path, "r") as log_file:
-                log_events = []
+                log_events: list[dict[str, int | str]] = []
                 for line in log_file:
                     timestamp_str, message = line.split(" ", 1)
-                    timestamp = int(
+                    timestamp: int = int(
                         (
                             datetime.strptime(
                                 timestamp_str, "%Y-%m-%d_%H:%M:%S.%f"
@@ -98,6 +98,9 @@ class AWSClient:
                             "message": message.strip(),
                         }
                     )
+
+            # Sort log events by timestamp
+            log_events.sort(key=lambda event: event["timestamp"])
 
             # CloudWatch doesn't allow colon in stream names, so use a dash
             log_stream_name_fmt = log_stream_name.replace(":", "-")
