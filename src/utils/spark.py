@@ -173,7 +173,8 @@ class SparkJob:
         """
         filter = []
         if self.taxyr:
-            filter.append(f"taxyr IN ({', '.join(map(str, self.taxyr))})")
+            min_year, max_year = self.taxyr[0], self.taxyr[-1]
+            filter.append(f"taxyr BETWEEN {min_year} AND {max_year}")
         if self.cur:
             quoted_cur = [f"'{x}'" for x in self.cur]
             filter.append(f"cur IN ({', '.join(quoted_cur)})")
