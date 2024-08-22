@@ -7,7 +7,7 @@ from pathlib import Path
 from pyarrow import dataset as ds
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import current_timestamp, date_format
-from pyspark.sql.types import DecimalType, StringType, TimestampType
+from pyspark.sql.types import DecimalType, TimestampType
 
 from utils.aws import AWSClient
 from utils.helpers import (
@@ -250,7 +250,8 @@ class SparkJob:
                 and field.name not in schema_override_cols
             ):
                 df = df.withColumn(
-                    field.name, df[field.name].cast(StringType())
+                    field.name,
+                    date_format(df[field.name], "yyyy-MM-dd HH:mm:ss.SSS"),
                 )
 
             if (
