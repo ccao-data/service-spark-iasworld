@@ -61,7 +61,7 @@ of the job itself (e.g. `job2` below) is arbitrary.
 ### Field definitions
 
 - `table_name (required)` - Name of the iasWorld table to extract, must be
-  prefixed with `iasworld.`.
+  prefixed with `iasworld.` (or `ias.` for test environment).
 - `min_year (optional)` - Minimum tax year (inclusive) to extract from the
   table. Set to `null` in a job definition to ignore this column when filtering
   and partitioning. Defaults to `1999`.
@@ -115,6 +115,8 @@ docker exec spark-node-master ./submit.sh --json-file /tmp/jobs.json
 
 The command line interface also has multiple optional flags:
 
+- `--extract-target` - iasWorld target environment to extract data from. Must
+  be one of `prod` or `test`. Defaults to `prod`.
 - `--run-github-workflow/--no-run-github-workflow` - Run the [`test_dbt_models`](https://github.com/ccao-data/data-architecture/blob/master/.github/workflows/test_dbt_models.yaml)
   workflow on batch completion?
 - `--run-glue-crawler/--no-run-glue-crawler` - Run the iasWorld Glue crawler
@@ -124,7 +126,7 @@ The command line interface also has multiple optional flags:
 - `--upload-logs/--no-upload-logs` - Upload batch logs to AWS CloudWatch?
 
 The default values for these flags are set in the `config/default_settings.yaml`
-file. The are all `True` by default.
+file. The boolean flags are all `True` by default.
 
 ## Additional notes
 
@@ -207,6 +209,9 @@ user 1003.
 
 # Extract all tables on Saturday at 1 AM CST
 0 6 * * 6 docker exec spark-node-master ./submit.sh --json-string "$(yq -o=json .weekend_jobs /full/path/to/default_jobs.yaml)"
+
+# Extract all test environment tables on Sunday at 1 AM CST
+0 6 * * 7 docker exec spark-node-master ./submit.sh --json-string "$(yq -o=json .weekend_jobs /full/path/to/default_jobs.yaml)" --extract-target test
 ```
 
 ## Structure
