@@ -131,7 +131,7 @@ def load_yaml(path: str, key: str):
 
 
 def strip_table_prefix(table_name: str) -> str:
-    """Removes the 'iasworld.' prefix from a table name."""
-    if table_name.startswith("iasworld."):
+    """Removes the schema prefix from a table name."""
+    if table_name.startswith("iasworld.") or table_name.startswith("ias."):
         return table_name.split(".", 1)[1]
     return table_name
