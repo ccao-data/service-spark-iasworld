@@ -1,6 +1,5 @@
 import argparse
 import os
-import shutil
 import time
 from datetime import datetime, timedelta
 
@@ -10,6 +9,7 @@ from utils.aws import AWSClient
 from utils.github import GitHubClient
 from utils.helpers import (
     PATH_SPARK_LOG,
+    clear_directory,
     create_python_logger,
     load_job_definitions,
     load_predicates,
@@ -263,8 +263,8 @@ if __name__ == "__main__":
         # Clear the existing extract files and logs before submitting new jobs.
         # This is to prevent new jobs from becoming mixed with the results of
         # previous failed or cancelled jobs
-        shutil.rmtree(PATH_INITIAL_DIR)
-        shutil.rmtree(PATH_FINAL_DIR)
+        clear_directory(PATH_INITIAL_DIR)
+        clear_directory(PATH_FINAL_DIR)
         if os.path.exists(PATH_SPARK_LOG):
             os.remove(PATH_SPARK_LOG)
 

@@ -1,5 +1,4 @@
 import os
-import shutil
 import time
 from datetime import timedelta
 from pathlib import Path
@@ -12,6 +11,7 @@ from pyspark.sql.types import DecimalType, TimestampType
 from utils.aws import AWSClient
 from utils.helpers import (
     PATH_SPARK_LOG,
+    clear_directory,
     create_python_logger,
     dict_to_schema,
     strip_table_prefix,
@@ -421,8 +421,8 @@ class SparkJob:
 
         # Purge the local output directories once all files have uploaded. This
         # also cleans up the metadata, .crc, and _SUCCESS files from Spark
-        shutil.rmtree(self.initial_dir)
-        shutil.rmtree(self.final_dir)
+        clear_directory(self.initial_dir)
+        clear_directory(self.final_dir)
 
         time_end = time.time()
         time_duration = str(timedelta(seconds=(time_end - time_start)))

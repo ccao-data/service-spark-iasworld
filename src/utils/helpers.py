@@ -1,10 +1,31 @@
 import json
 import logging
+import shutil
 from pathlib import Path
 
 import yaml
 
 PATH_SPARK_LOG = "/tmp/logs/spark.log"
+
+
+def clear_directory(dir: Path | str) -> None:
+    """
+    Clears all files and subdirectories in the specified directory, except
+    for .gitkeep files.
+
+    Args:
+        dir: A string or Path object to the target directory, relative to
+            the Docker container.
+    """
+    dir_path = Path(dir)
+    if not dir_path.is_dir():
+        raise ValueError(f"The path {dir} is not a valid directory.")
+
+    for item in dir_path.iterdir():
+        if item.is_dir():
+            shutil.rmtree(item.as_posix())
+        elif item.name != ".gitkeep":
+            item.unlink()
 
 
 def create_python_logger(
