@@ -26,7 +26,6 @@ DEFAULT_VAR_CUR = ["Y", "N", "D"]
 DEFAULT_VAR_PREDICATES_PATH = "default_predicates.sql"
 
 # Constants for paths inside the Spark container
-PATH_IPTS_PASSWORD = "/run/secrets/IPTS_PASSWORD"
 PATH_INITIAL_DIR = "/tmp/target/initial"
 PATH_FINAL_DIR = "/tmp/target/final"
 PATH_GH_PEM = "/run/secrets/GH_PEM"
@@ -42,6 +41,13 @@ NUM_PARALLEL_JOBS = 4
 def parse_args(defaults) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Submit iasWorld Spark extraction jobs"
+    )
+    parser.add_argument(
+        "--extract-target",
+        type=str,
+        choices=["test", "prod"],
+        default=defaults.get("extract_target", "prod"),
+        help="Which iasWorld environment to extract data from",
     )
     parser.add_argument(
         "--json-file",
@@ -98,6 +104,7 @@ def parse_args(defaults) -> argparse.Namespace:
 
 def submit_jobs(
     app_name: str,
+    extract_target: str,
     json_file: str | None = None,
     json_string: str | None = None,
     run_github_workflow: bool = True,
@@ -122,9 +129,12 @@ def submit_jobs(
 
     # Each session is shared across all read jobs and manages job order,
     # credentialing, retries, etc.
+    target = "TST" if extract_target == "test" else "PRD"
+    pw_file_path = f"/run/secrets/IPTS_{target}_PASSWORD"
     session = SharedSparkSession(
         app_name=app_name,
-        password_file_path=PATH_IPTS_PASSWORD,
+        extract_target=extract_target,
+        password_file_path=pw_file_path,
     )
 
     # Perform some startup logging before entering the main job loop
@@ -201,7 +211,8 @@ def submit_jobs(
         job.repartition()
 
     # Upload extracted files to AWS S3 in Hive-partitioned Parquet
-    aws = AWSClient()
+    s3_prefix = "iasworld" if extract_target == "prod" else "iasworld_test"
+    aws = AWSClient(s3_prefix=s3_prefix)
     new_local_files = []
     if upload_data:
         for job in jobs:
@@ -240,14 +251,15 @@ def submit_jobs(
 
 if __name__ == "__main__":
     current_datetime = datetime.now().strftime("%Y-%m-%d_%H:%M:%S")
-    app_name = f"iasworld_{current_datetime}"
     default_args = load_yaml(PATH_DEFAULT_SETTINGS, "default_args")
     args = parse_args(default_args)
     logger.info(f"Starting Spark application with arguments: {args}")
+    app_name = f"iasworld_{args.extract_target}_{current_datetime}"
 
     try:
         submit_jobs(
             app_name=app_name,
+            extract_target=args.extract_target,
             json_file=args.json_file,
             json_string=args.json_string,
             run_github_workflow=args.run_github_workflow,
