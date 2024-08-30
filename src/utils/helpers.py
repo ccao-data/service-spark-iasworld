@@ -1,5 +1,6 @@
 import json
 import logging
+import shutil
 from pathlib import Path
 
 import yaml
@@ -7,8 +8,28 @@ import yaml
 PATH_SPARK_LOG = "/tmp/logs/spark.log"
 
 
+def clear_directory(dir: Path | str) -> None:
+    """
+    Clears all files and subdirectories in the specified directory, except
+    for .gitkeep files.
+
+    Args:
+        dir: A string or Path object to the target directory, relative to
+            the Docker container.
+    """
+    dir_path = Path(dir)
+    if not dir_path.is_dir():
+        raise ValueError(f"The path {dir} is not a valid directory.")
+
+    for item in dir_path.iterdir():
+        if item.is_dir():
+            shutil.rmtree(item.as_posix())
+        elif item.name != ".gitkeep":
+            item.unlink()
+
+
 def create_python_logger(
-    name: str, log_file_path: str = PATH_SPARK_LOG
+    name: str, mode: str = "a", log_file_path: str = PATH_SPARK_LOG
 ) -> logging.Logger:
     """
     Sets up a logger with the same output format and location as the primary
@@ -17,6 +38,7 @@ def create_python_logger(
 
     Args:
         name: Module name to use for the logger.
+        mode: Logging handler mode when writing to file.
         log_file_path: String path to the log file where logs will be written.
 
     Returns:
@@ -42,7 +64,7 @@ def create_python_logger(
     logger = logging.getLogger(name)
     logger.setLevel(logging.INFO)
 
-    file_handler = logging.FileHandler(log_file_path, mode="a")
+    file_handler = logging.FileHandler(log_file_path, mode=mode)
     file_handler.setFormatter(file_formatter)
     stream_handler = logging.StreamHandler()
     stream_handler.setFormatter(stdout_formatter)
@@ -131,7 +153,7 @@ def load_yaml(path: str, key: str):
 
 
 def strip_table_prefix(table_name: str) -> str:
-    """Removes the 'iasworld.' prefix from a table name."""
-    if table_name.startswith("iasworld."):
+    """Removes the schema prefix from a table name."""
+    if table_name.startswith("iasworld.") or table_name.startswith("ias."):
         return table_name.split(".", 1)[1]
     return table_name

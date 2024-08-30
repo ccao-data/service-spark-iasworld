@@ -3,10 +3,12 @@ import time
 from datetime import datetime, timedelta
 
 from joblib import Parallel, delayed
+
 from utils.aws import AWSClient
 from utils.github import GitHubClient
 from utils.helpers import (
     PATH_SPARK_LOG,
+    clear_directory,
     create_python_logger,
     load_job_definitions,
     load_predicates,
@@ -15,7 +17,7 @@ from utils.helpers import (
 )
 from utils.spark import SharedSparkSession, SparkJob
 
-logger = create_python_logger(__name__)
+logger = create_python_logger(__name__, mode="w")
 
 # Default values for jobs, used per job if not explicitly set in the job's
 # input JSON. CUR and YEAR values are used for partitioning and filtering
@@ -26,7 +28,6 @@ DEFAULT_VAR_CUR = ["Y", "N", "D"]
 DEFAULT_VAR_PREDICATES_PATH = "default_predicates.sql"
 
 # Constants for paths inside the Spark container
-PATH_IPTS_PASSWORD = "/run/secrets/IPTS_PASSWORD"
 PATH_INITIAL_DIR = "/tmp/target/initial"
 PATH_FINAL_DIR = "/tmp/target/final"
 PATH_GH_PEM = "/run/secrets/GH_PEM"
@@ -42,6 +43,13 @@ NUM_PARALLEL_JOBS = 4
 def parse_args(defaults) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Submit iasWorld Spark extraction jobs"
+    )
+    parser.add_argument(
+        "--extract-target",
+        type=str,
+        choices=["test", "prod"],
+        default=defaults.get("extract_target", "prod"),
+        help="Which iasWorld environment to extract data from",
     )
     parser.add_argument(
         "--json-file",
@@ -98,6 +106,7 @@ def parse_args(defaults) -> argparse.Namespace:
 
 def submit_jobs(
     app_name: str,
+    extract_target: str,
     json_file: str | None = None,
     json_string: str | None = None,
     run_github_workflow: bool = True,
@@ -122,9 +131,12 @@ def submit_jobs(
 
     # Each session is shared across all read jobs and manages job order,
     # credentialing, retries, etc.
+    target = "TST" if extract_target == "test" else "PRD"
+    pw_file_path = f"/run/secrets/IPTS_{target}_PASSWORD"
     session = SharedSparkSession(
         app_name=app_name,
-        password_file_path=PATH_IPTS_PASSWORD,
+        extract_target=extract_target,
+        password_file_path=pw_file_path,
     )
 
     # Perform some startup logging before entering the main job loop
@@ -201,7 +213,8 @@ def submit_jobs(
         job.repartition()
 
     # Upload extracted files to AWS S3 in Hive-partitioned Parquet
-    aws = AWSClient()
+    s3_prefix = "iasworld" if extract_target == "prod" else "iasworld_test"
+    aws = AWSClient(s3_prefix=s3_prefix)
     new_local_files = []
     if upload_data:
         for job in jobs:
@@ -216,7 +229,11 @@ def submit_jobs(
                 "to S3, triggering Glue crawler"
             )
         )
-        aws.run_and_wait_for_crawler("ccao-data-warehouse-iasworld-crawler")
+        if extract_target == "prod":
+            crawler_name = "ccao-data-warehouse-iasworld-crawler"
+        else:
+            crawler_name = "ccao-data-warehouse-iasworld_test-crawler"
+        aws.run_and_wait_for_crawler(crawler_name)
 
     # Trigger a GitHub workflow to run dbt tests once all jobs are complete
     if run_github_workflow:
@@ -240,14 +257,21 @@ def submit_jobs(
 
 if __name__ == "__main__":
     current_datetime = datetime.now().strftime("%Y-%m-%d_%H:%M:%S")
-    app_name = f"iasworld_{current_datetime}"
     default_args = load_yaml(PATH_DEFAULT_SETTINGS, "default_args")
     args = parse_args(default_args)
     logger.info(f"Starting Spark application with arguments: {args}")
+    app_name = f"iasworld_{args.extract_target}_{current_datetime}"
 
     try:
+        # Clear the existing extract files before submitting new jobs.
+        # This is to prevent new jobs from becoming mixed with the results of
+        # previous failed or cancelled jobs
+        clear_directory(PATH_INITIAL_DIR)
+        clear_directory(PATH_FINAL_DIR)
+
         submit_jobs(
             app_name=app_name,
+            extract_target=args.extract_target,
             json_file=args.json_file,
             json_string=args.json_string,
             run_github_workflow=args.run_github_workflow,

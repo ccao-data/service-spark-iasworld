@@ -10,10 +10,18 @@ logger = create_python_logger(__name__)
 
 
 class AWSClient:
-    def __init__(self):
+    def __init__(
+        self, s3_bucket: str | None = None, s3_prefix: str | None = None
+    ):
         """
         Class to store AWS clients and methods for various AWS actions. Clients
         are instantiated from AWS credentials passed via Compose secrets.
+
+        Args:
+            s3_bucket: S3 bucket to upload to. Overrides the equivalent
+                environmental variable.
+            s3_prefix: S3 path prefix within S3 bucket. Overrides the equivalent
+                environmental variable.
 
         Attributes:
             logs_client: Glue client connection for running crawlers.
@@ -25,8 +33,10 @@ class AWSClient:
         self.logs_client = boto3.client("logs")
         self.glue_client = boto3.client("glue")
         self.s3_client = boto3.client("s3")
-        self.s3_bucket = os.getenv("AWS_S3_BUCKET")
-        self.s3_prefix = os.getenv("AWS_S3_PREFIX", "iasworld")
+        self.s3_bucket = s3_bucket if s3_bucket else os.getenv("AWS_S3_BUCKET")
+        self.s3_prefix = (
+            s3_prefix if s3_prefix else os.getenv("AWS_S3_PREFIX", "iasworld")
+        )
 
     def run_and_wait_for_crawler(self, crawler_name) -> None:
         initial_response = self.glue_client.get_crawler(Name=crawler_name)

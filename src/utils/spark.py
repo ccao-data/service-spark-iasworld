@@ -1,5 +1,4 @@
 import os
-import shutil
 import time
 from datetime import timedelta
 from pathlib import Path
@@ -12,6 +11,7 @@ from pyspark.sql.types import DecimalType, TimestampType
 from utils.aws import AWSClient
 from utils.helpers import (
     PATH_SPARK_LOG,
+    clear_directory,
     create_python_logger,
     dict_to_schema,
     strip_table_prefix,
@@ -31,6 +31,7 @@ class SharedSparkSession:
             be referenced to poll session status.
         password_file_path: The path to the file containing the password. This
             is passed via Compose secrets.
+        extract_target: The iasWorld environment to extract data from.
         ipts_hostname: The hostname for the iasWorld database.
         ipts_port: The port for the iasWorld database.
         ipts_service_name: The service name for the iasWorld database.
@@ -47,16 +48,20 @@ class SharedSparkSession:
         spark: The Spark session object.
     """
 
-    def __init__(self, app_name: str, password_file_path: str) -> None:
+    def __init__(
+        self, app_name: str, extract_target: str, password_file_path: str
+    ) -> None:
         self.app_name = app_name
         self.password_file_path = password_file_path
+        self.extract_target = extract_target
 
         # Vars here are loaded from the .env file, then forwarded to the
         # container in docker-compose.yaml
-        self.ipts_hostname = os.getenv("IPTS_HOSTNAME")
-        self.ipts_port = os.getenv("IPTS_PORT")
-        self.ipts_service_name = os.getenv("IPTS_SERVICE_NAME")
-        self.ipts_username = os.getenv("IPTS_USERNAME")
+        target = "TST" if self.extract_target == "test" else "PRD"
+        self.ipts_hostname = os.getenv(f"IPTS_{target}_HOSTNAME")
+        self.ipts_port = os.getenv(f"IPTS_{target}_PORT")
+        self.ipts_service_name = os.getenv(f"IPTS_{target}_SERVICE_NAME")
+        self.ipts_username = os.getenv(f"IPTS_{target}_USERNAME")
         self.database_url = (
             f"jdbc:oracle:thin:@//{self.ipts_hostname}:"
             f"{self.ipts_port}/"
@@ -114,7 +119,7 @@ class SparkJob:
         session: The shared Spark session containing the Spark connection and
             database credentials.
         table_name: The name of the iasWorld table to read from. Should be
-            prefixed with 'iasworld.'.
+            prefixed with 'iasworld.' (or 'ias.' for test environment).
         taxyr: The tax year(s) to filter and partition by.
         cur: The cur value(s) to filter and partition by.
         predicates: A list of SQL predicates for chunking JDBC reads.
@@ -416,8 +421,8 @@ class SparkJob:
 
         # Purge the local output directories once all files have uploaded. This
         # also cleans up the metadata, .crc, and _SUCCESS files from Spark
-        shutil.rmtree(self.initial_dir)
-        shutil.rmtree(self.final_dir)
+        clear_directory(self.initial_dir)
+        clear_directory(self.final_dir)
 
         time_end = time.time()
         time_duration = str(timedelta(seconds=(time_end - time_start)))

@@ -1,6 +1,7 @@
 # Default arguments used for the CLI. Can be overridden using the corresponding
 # flag at runtime
 default_args:
+  extract_target: "prod"
   run_github_workflow: True
   run_glue_crawler: True
   upload_logs: True
