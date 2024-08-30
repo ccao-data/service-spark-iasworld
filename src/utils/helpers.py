@@ -29,7 +29,7 @@ def clear_directory(dir: Path | str) -> None:
 
 
 def create_python_logger(
-    name: str, log_file_path: str = PATH_SPARK_LOG
+    name: str, mode: str = "a", log_file_path: str = PATH_SPARK_LOG
 ) -> logging.Logger:
     """
     Sets up a logger with the same output format and location as the primary
@@ -38,6 +38,7 @@ def create_python_logger(
 
     Args:
         name: Module name to use for the logger.
+        mode: Logging handler mode when writing to file.
         log_file_path: String path to the log file where logs will be written.
 
     Returns:
@@ -63,7 +64,7 @@ def create_python_logger(
     logger = logging.getLogger(name)
     logger.setLevel(logging.INFO)
 
-    file_handler = logging.FileHandler(log_file_path, mode="a")
+    file_handler = logging.FileHandler(log_file_path, mode=mode)
     file_handler.setFormatter(file_formatter)
     stream_handler = logging.StreamHandler()
     stream_handler.setFormatter(stdout_formatter)
