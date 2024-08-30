@@ -230,7 +230,11 @@ def submit_jobs(
                 "to S3, triggering Glue crawler"
             )
         )
-        aws.run_and_wait_for_crawler("ccao-data-warehouse-iasworld-crawler")
+        if extract_target == "prod":
+            crawler_name = "ccao-data-warehouse-iasworld-crawler"
+        else:
+            crawler_name = "ccao-data-warehouse-iasworld_test-crawler"
+        aws.run_and_wait_for_crawler(crawler_name)
 
     # Trigger a GitHub workflow to run dbt tests once all jobs are complete
     if run_github_workflow:
