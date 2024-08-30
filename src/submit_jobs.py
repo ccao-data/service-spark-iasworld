@@ -1,8 +1,11 @@
 import argparse
+import os
+import shutil
 import time
 from datetime import datetime, timedelta
 
 from joblib import Parallel, delayed
+
 from utils.aws import AWSClient
 from utils.github import GitHubClient
 from utils.helpers import (
@@ -257,6 +260,14 @@ if __name__ == "__main__":
     app_name = f"iasworld_{args.extract_target}_{current_datetime}"
 
     try:
+        # Clear the existing extract files and logs before submitting new jobs.
+        # This is to prevent new jobs from becoming mixed with the results of
+        # previous failed or cancelled jobs
+        shutil.rmtree(PATH_INITIAL_DIR)
+        shutil.rmtree(PATH_FINAL_DIR)
+        if os.path.exists(PATH_SPARK_LOG):
+            os.remove(PATH_SPARK_LOG)
+
         submit_jobs(
             app_name=app_name,
             extract_target=args.extract_target,
