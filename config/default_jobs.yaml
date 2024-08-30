@@ -189,7 +189,9 @@ weekend_jobs:
     cur: null
     predicates_path: null
 
-# Jobs that run on the weekend targeting the test environment
+# Jobs that run on the weekend targeting the test environment. Note
+# that the subset of tables we have access to in test is more limited
+# than in prod i.e. we only have access to the tables below
 weekend_jobs_test:
   addn:
     table_name: ias.addn
