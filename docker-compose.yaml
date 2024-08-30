@@ -16,7 +16,8 @@ x-default: &node
   secrets:
     - AWS_CREDENTIALS
     - GH_PEM
-    - IPTS_PASSWORD
+    - IPTS_PRD_PASSWORD
+    - IPTS_TST_PASSWORD
   networks:
     - sparknet
 
@@ -29,19 +30,22 @@ services:
       - SPARK_MODE=master
 
       - AWS_SHARED_CREDENTIALS_FILE=/run/secrets/AWS_CREDENTIALS
-      - AWS_S3_BUCKET=${AWS_S3_BUCKET}
-      - AWS_S3_PREFIX=${AWS_S3_PREFIX}
+      - AWS_S3_BUCKET
+      - AWS_S3_PREFIX
       - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
       - SPARK_PUBLIC_DNS=${SPARK_PUBLIC_IP}
       - SPARK_RPC_AUTHENTICATION_ENABLED=no
       - SPARK_RPC_ENCRYPTION_ENABLED=no
       - SPARK_SSL_ENABLED=no
       - SPARK_USER=spark
-      - IPTS_SERVICE_NAME
-      - IPTS_HOSTNAME
-      - IPTS_USERNAME
-      - IPTS_PORT
-      - IPTS_TABLE
+      - IPTS_PRD_SERVICE_NAME
+      - IPTS_PRD_HOSTNAME
+      - IPTS_PRD_USERNAME
+      - IPTS_PRD_PORT
+      - IPTS_TST_SERVICE_NAME
+      - IPTS_TST_HOSTNAME
+      - IPTS_TST_USERNAME
+      - IPTS_TST_PORT
       - GH_APP_ID
     ports:
       - 4040:4040
@@ -59,19 +63,22 @@ services:
       - SPARK_WORKER_WEBUI_PORT=9090
 
       - AWS_SHARED_CREDENTIALS_FILE=/run/secrets/AWS_CREDENTIALS
-      - AWS_S3_BUCKET=${AWS_S3_BUCKET}
-      - AWS_S3_PREFIX=${AWS_S3_PREFIX}
+      - AWS_S3_BUCKET
+      - AWS_S3_PREFIX
       - SPARK_PUBLIC_DNS=${SPARK_PUBLIC_IP}
       - SPARK_RPC_AUTHENTICATION_ENABLED=no
       - SPARK_RPC_ENCRYPTION_ENABLED=no
       - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
       - SPARK_SSL_ENABLED=no
       - SPARK_USER=spark
-      - IPTS_SERVICE_NAME
-      - IPTS_HOSTNAME
-      - IPTS_USERNAME
-      - IPTS_PORT
-      - IPTS_TABLE
+      - IPTS_PRD_SERVICE_NAME
+      - IPTS_PRD_HOSTNAME
+      - IPTS_PRD_USERNAME
+      - IPTS_PRD_PORT
+      - IPTS_TST_SERVICE_NAME
+      - IPTS_TST_HOSTNAME
+      - IPTS_TST_USERNAME
+      - IPTS_TST_PORT
       - GH_APP_ID
     ports:
       - 9090:9090
@@ -90,5 +97,7 @@ secrets:
     file: secrets/AWS_CREDENTIALS_FILE
   GH_PEM:
     file: secrets/GH_PEM
-  IPTS_PASSWORD:
-    file: secrets/IPTS_PASSWORD
+  IPTS_PRD_PASSWORD:
+    file: secrets/IPTS_PRD_PASSWORD
+  IPTS_TST_PASSWORD:
+    file: secrets/IPTS_TST_PASSWORD
