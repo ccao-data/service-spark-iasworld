@@ -1,4 +1,5 @@
 import argparse
+import os
 import time
 from datetime import datetime, timedelta
 
@@ -17,7 +18,7 @@ from utils.helpers import (
 )
 from utils.spark import SharedSparkSession, SparkJob
 
-logger = create_python_logger(__name__, mode="w")
+logger = create_python_logger(__name__)
 
 # Default values for jobs, used per job if not explicitly set in the job's
 # input JSON. CUR and YEAR values are used for partitioning and filtering
@@ -263,11 +264,13 @@ if __name__ == "__main__":
     app_name = f"iasworld_{args.extract_target}_{current_datetime}"
 
     try:
-        # Clear the existing extract files before submitting new jobs.
+        # Clear the existing extract files and logs before submitting new jobs.
         # This is to prevent new jobs from becoming mixed with the results of
         # previous failed or cancelled jobs
         clear_directory(PATH_INITIAL_DIR)
         clear_directory(PATH_FINAL_DIR)
+        if os.path.exists(PATH_SPARK_LOG):
+            os.remove(PATH_SPARK_LOG)
 
         submit_jobs(
             app_name=app_name,
