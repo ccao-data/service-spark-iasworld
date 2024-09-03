@@ -257,6 +257,10 @@ def submit_jobs(
 
 
 if __name__ == "__main__":
+    # Clear any existing log file immediately on session start
+    if os.path.exists(PATH_SPARK_LOG):
+        os.remove(PATH_SPARK_LOG)
+
     current_datetime = datetime.now().strftime("%Y-%m-%d_%H:%M:%S")
     default_args = load_yaml(PATH_DEFAULT_SETTINGS, "default_args")
     args = parse_args(default_args)
@@ -264,13 +268,11 @@ if __name__ == "__main__":
     app_name = f"iasworld_{args.extract_target}_{current_datetime}"
 
     try:
-        # Clear the existing extract files and logs before submitting new jobs.
+        # Clear the existing extract files before submitting new jobs.
         # This is to prevent new jobs from becoming mixed with the results of
         # previous failed or cancelled jobs
         clear_directory(PATH_INITIAL_DIR)
         clear_directory(PATH_FINAL_DIR)
-        if os.path.exists(PATH_SPARK_LOG):
-            os.remove(PATH_SPARK_LOG)
 
         submit_jobs(
             app_name=app_name,
