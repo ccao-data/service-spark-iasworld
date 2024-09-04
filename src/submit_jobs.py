@@ -18,6 +18,10 @@ from utils.helpers import (
 )
 from utils.spark import SharedSparkSession, SparkJob
 
+# Clear any existing log file immediately on session start
+if os.path.exists(PATH_SPARK_LOG):
+    os.remove(PATH_SPARK_LOG)
+
 logger = create_python_logger(__name__)
 
 # Default values for jobs, used per job if not explicitly set in the job's
@@ -257,10 +261,6 @@ def submit_jobs(
 
 
 if __name__ == "__main__":
-    # Clear any existing log file immediately on session start
-    if os.path.exists(PATH_SPARK_LOG):
-        os.remove(PATH_SPARK_LOG)
-
     current_datetime = datetime.now().strftime("%Y-%m-%d_%H:%M:%S")
     default_args = load_yaml(PATH_DEFAULT_SETTINGS, "default_args")
     args = parse_args(default_args)
