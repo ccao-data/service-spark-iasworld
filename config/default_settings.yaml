@@ -13,6 +13,9 @@ default_args:
 #      and TIMESTAMP Oracle types are converted to STRING
 #   2. Global schema overrides, as defined below
 #   3. Table schema overrides, defined in table_definitions.yaml
+#
+# NOTE: taxyr MUST be an integer in order for Spark to properly pushdown
+# filters (and thus make queries go fast)
 global_schema_overrides:
   deactivat: STRING
-  taxyr: STRING
+  taxyr: INTEGER
