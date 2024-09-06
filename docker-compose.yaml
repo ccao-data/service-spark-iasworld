@@ -59,7 +59,7 @@ services:
       - SPARK_MODE=worker
       - SPARK_MASTER_URL=spark://spark-node-master:7077
       - SPARK_WORKER_MEMORY=96G
-      - SPARK_WORKER_CORES=32
+      - SPARK_WORKER_CORES=28
       - SPARK_WORKER_WEBUI_PORT=9090
 
       - AWS_SHARED_CREDENTIALS_FILE=/run/secrets/AWS_CREDENTIALS
