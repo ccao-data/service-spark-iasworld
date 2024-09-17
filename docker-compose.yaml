@@ -6,6 +6,7 @@ x-default: &node
   build:
     context: .
     dockerfile: Dockerfile
+  restart: unless-stopped
   volumes:
     - ./drivers:/jdbc:ro
     - ./src:/tmp/src:ro
