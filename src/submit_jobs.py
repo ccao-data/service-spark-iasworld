@@ -228,6 +228,7 @@ def submit_jobs(
 
     # If any jobs uploaded never-seen-before files, trigger a Glue crawler
     if new_local_files and run_glue_crawler:
+        logger.info(f"Previously unseen files: {new_local_files}")
         logger.info(
             (
                 f"{len(new_local_files)} previously unseen files uploaded "
