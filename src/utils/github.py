@@ -84,7 +84,7 @@ class GitHubClient:
                 response.raise_for_status()
                 gh_token = response.json()["token"]
 
-                data = {"ref": "master"}
+                data: dict[str, str | dict] = {"ref": "master"}
                 if inputs is not None:
                     data["inputs"] = inputs
 
