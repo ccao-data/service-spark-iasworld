@@ -48,13 +48,16 @@ class GitHubClient:
 
         return encoded_jwt
 
-    def run_workflow(self, repository, workflow) -> None:
+    def run_workflow(
+        self, repository, workflow, inputs: dict | None = None
+    ) -> None:
         """
         Dispatch a GitHub Actions workflow using the GitHub API.
 
         Args:
             repository: API URL for the target repository containing a workflow.
             workflow: Workflow YAML file, relative to `.github/workflows`.
+            inputs: Optional dict of input variables.
         """
 
         def create_headers(bearer: str) -> dict:
@@ -81,7 +84,10 @@ class GitHubClient:
                 response.raise_for_status()
                 gh_token = response.json()["token"]
 
-                data = {"ref": "master"}
+                data: dict[str, str | dict] = {"ref": "master"}
+                if inputs is not None:
+                    data["inputs"] = inputs
+
                 response = requests.post(
                     f"{repository}/actions/workflows/{workflow}/dispatches",
                     headers=create_headers(gh_token),
