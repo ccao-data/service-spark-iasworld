@@ -23,10 +23,10 @@ x-default: &node
     - sparknet
 
 services:
-  spark-node-master:
+  spark-node-master-prod:
     <<: *node
-    container_name: spark-node-master
-    hostname: spark-node-master
+    container_name: spark-node-master-prod
+    hostname: spark-node-master-prod
     environment:
       - SPARK_MODE=master
 
@@ -51,6 +51,27 @@ services:
     ports:
       - 4040:4040
       - 8080:8080
+
+  spark-node-master-dev:
+    <<: *node
+    container_name: spark-node-master-dev
+    hostname: spark-node-master-dev
+    environment:
+      - SPARK_MODE=master
+
+      - AWS_SHARED_CREDENTIALS_FILE=/run/secrets/AWS_CREDENTIALS
+      - AWS_S3_BUCKET
+      - AWS_S3_PREFIX
+      - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
+      - SPARK_PUBLIC_DNS=${SPARK_PUBLIC_IP}
+      - SPARK_RPC_AUTHENTICATION_ENABLED=no
+      - SPARK_RPC_ENCRYPTION_ENABLED=no
+      - SPARK_SSL_ENABLED=no
+      - SPARK_USER=spark
+      - GH_APP_ID
+    ports:
+      - 4041:4041
+      - 8081:8081
 
   spark-node-worker:
     <<: *node
