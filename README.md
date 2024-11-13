@@ -194,6 +194,48 @@ populate the following:
 - `secrets/` - These are credential files needed to connect to other systems.
 - `.env` - This file sets a few non-critical but still private options.
 
+## Using the development environment
+
+The Docker Compose stack we use to run Spark (via `docker compose up -d`)
+has a separate development environment that can be used to test code changes
+without disrupting the production containers.
+
+The development environment uses
+[Compose profiles](https://docs.docker.com/compose/how-tos/profiles/) to run
+a parallel set of containers with tweaked setup/environment variables.
+
+To start the development environment, run:
+
+```bash
+docker compose --profile dev up -d
+```
+
+To submit a job to the development environment, change the container target
+of your command from `prod` to `dev`. For example:
+
+```bash
+docker exec -it spark-node-master-dev ./submit.sh \
+    --json-string "$(yq -o=json .test_jobs ./config/default_jobs.yaml)"
+```
+
+A typical development workflow might look something like:
+
+1. Clone the repository to your own machine or home directory. Do _not_ use
+  the production `shiny-server` copy of the repository for development.
+2. Copy the secrets, environmental variables, and drivers from the production
+  setup to the development repository.
+3. Start the development environment using `docker compose --profile dev up -d`.
+4. Submit a job to the development containers using `docker exec`, targeting
+  the development master node (`spark-node-master-dev`).
+5. Check the job status at `$SERVER_IP:8081`, instead of the production port `8080`.
+
+> [!WARNING]
+> The development environment shares the same targets as the production
+> environment. That means it will write to the same S3 bucket/CloudWatch log
+> group and trigger the same workflows/crawlers (if these features are enabled).
+> As such, use this environment carefully. If you mess up production data, you
+> can run the production version of the code to re-fetch the production data.
+
 ## Scheduling
 
 Batches are currently scheduled via
