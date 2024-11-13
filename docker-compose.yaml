@@ -29,13 +29,11 @@ x-spark-env: &spark-env
   SPARK_SSL_ENABLED: no
   SPARK_USER: spark
 
-x-third-party-env: &third-party-env
   AWS_SHARED_CREDENTIALS_FILE: /run/secrets/AWS_CREDENTIALS
   AWS_S3_BUCKET:
   AWS_S3_PREFIX:
   GH_APP_ID:
 
-x-ipts-env: &ipts-env
   IPTS_PRD_SERVICE_NAME:
   IPTS_PRD_HOSTNAME:
   IPTS_PRD_USERNAME:
@@ -53,7 +51,7 @@ services:
     container_name: spark-node-master-prod
     hostname: spark-node-master-prod
     environment:
-      <<: [*spark-env, *third-party-env, *ipts-env]
+      <<: [*spark-env]
       SPARK_MODE: master
       SPARK_PUBLIC_DNS: ${SPARK_PUBLIC_IP}
     ports:
@@ -71,13 +69,18 @@ services:
     depends_on:
       - spark-node-master-prod
     environment:
-      <<: [*spark-env, *third-party-env, *ipts-env]
+      <<: [*spark-env]
       SPARK_MODE: worker
       SPARK_MASTER_URL: spark://spark-node-master-prod:7077
+      SPARK_MASTER_HOST: spark://spark-node-master-prod:7077
       SPARK_WORKER_MEMORY: 96G
       SPARK_WORKER_CORES: 28
       SPARK_WORKER_WEBUI_PORT: 9090
       SPARK_PUBLIC_DNS: ${SPARK_PUBLIC_IP}
+      # Driver memory can be low, as it's only used for the JDBC connection
+      SPARK_DRIVER_MEMORY: 2g
+      # Total memory available to the worker, across all jobs
+      SPARK_EXECUTOR_MEMORY: 96g
     ports:
       - 9090:9090
     networks:
@@ -90,7 +93,7 @@ services:
     container_name: spark-node-master-dev
     hostname: spark-node-master-dev
     environment:
-      <<: [*spark-env, *third-party-env, *ipts-env]
+      <<: [*spark-env]
       SPARK_MODE: master
       SPARK_PUBLIC_DNS: ${SPARK_PUBLIC_IP}
     ports:
@@ -108,13 +111,16 @@ services:
     depends_on:
       - spark-node-master-dev
     environment:
-      <<: [*spark-env, *third-party-env, *ipts-env]
+      <<: [*spark-env]
       SPARK_MODE: worker
       SPARK_MASTER_URL: spark://spark-node-master-dev:7077
+      SPARK_MASTER_HOST: spark://spark-node-master-dev:7077
       SPARK_WORKER_MEMORY: 48G
       SPARK_WORKER_CORES: 14
       SPARK_WORKER_WEBUI_PORT: 9091
       SPARK_PUBLIC_DNS: ${SPARK_PUBLIC_IP}
+      SPARK_DRIVER_MEMORY: 2g
+      SPARK_EXECUTOR_MEMORY: 48g
     ports:
       - 9091:9091
     networks:
