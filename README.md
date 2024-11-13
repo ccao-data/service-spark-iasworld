@@ -126,7 +126,7 @@ The command line interface also has multiple optional flags:
 - `--upload-logs/--no-upload-logs` - Upload batch logs to AWS CloudWatch?
 
 The default values for these flags are set in the `config/default_settings.yaml`
-file. The boolean flags are all `True` by default.
+file. The boolean flags are all `False` by default.
 
 ## Additional notes
 
@@ -223,18 +223,29 @@ A typical development workflow might look something like:
 1. Clone the repository to your own machine or home directory. Do _not_ use
   the production `shiny-server` copy of the repository for development.
 2. Copy the secrets, environmental variables, and drivers from the production
-  setup to the development repository.
-3. Start the development environment using `docker compose --profile dev up -d`.
-4. Submit a job to the development containers using `docker exec`, targeting
+  setup to the development repository. See [Files not included](#files-not-included).
+3. Export `UID` and `GID` using something like the command below. This will
+  set the user for the container so the output files have the correct permissions.
+    ```bash
+    export UID=$(id -u)
+    export GID=$(id -g)
+    ```
+4. Build the Docker container targeting the `dev` tag by running
+  `docker compose --profile dev build`.
+5. Start the development environment using `docker compose --profile dev up -d`.
+6. Make your code modifications. Changes in the `src/` directory are reflected
+  in the dev containers due to volume mounts (no need to rebuild).
+7. Submit a job to the development containers using `docker exec`, targeting
   the development master node (`spark-node-master-dev`).
-5. Check the job status at `$SERVER_IP:8081`, instead of the production port `8080`.
+8. Check the job status at `$SERVER_IP:8081`, instead of the production port
+  `$SERVER_IP:8080`.
 
 > [!WARNING]
 > The development environment shares the same targets as the production
 > environment. That means it will write to the same S3 bucket/CloudWatch log
-> group and trigger the same workflows/crawlers (if these features are enabled).
-> As such, use this environment carefully. If you mess up production data, you
-> can run the production version of the code to re-fetch the production data.
+> group and trigger the same workflows/crawlers (though all these features are
+> disabled by default). As such, use this environment carefully. If you mess up
+> production data, you can run the production version of the code to re-fetch it.
 
 ## Scheduling
 
