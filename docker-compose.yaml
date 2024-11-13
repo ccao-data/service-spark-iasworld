@@ -1,13 +1,12 @@
 x-default: &node
   # Corresponds to the user set in the Dockerfile and the shiny-server
   # user on the server for proper write perms to mounted directories
-  user: "${UID:-1003}:${GID:-0}"
+  user: "${UID:-1003}:0"
   build:
     context: .
     dockerfile: Dockerfile
     args:
       - USER_ID=${UID:-1003}
-      - GROUP_ID=${GID:-0}
   volumes:
     - ./drivers:/jdbc:ro
     - ./src:/tmp/src:ro

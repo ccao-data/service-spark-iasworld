@@ -18,7 +18,6 @@ RUN pip install --no-cache-dir /tmp/python/.
 # User corresponds to dedicated shiny-server user on server. Necessary for
 # proper write permissions to target directories
 ARG USER_ID=1003
-ARG GROUP_ID=0
 
-USER ${USER_ID}:${GROUP_ID}
+USER ${USER_ID}:0
 WORKDIR /tmp/src

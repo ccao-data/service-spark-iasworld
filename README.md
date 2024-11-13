@@ -224,22 +224,14 @@ A typical development workflow might look something like:
   the production `shiny-server` copy of the repository for development.
 2. Copy the secrets, environmental variables, and drivers from the production
   setup to the development repository. See [Files not included](#files-not-included).
-3. Export `UID` and `GID` using something like the command below. This will
-  set the user for the container so the output files have the correct permissions.
-
-    ```bash
-    export UID=$(id -u)
-    export GID=$(id -g)
-    ```
-
-4. Build the Docker container targeting the `dev` tag by running
+3. Build the Docker container targeting the `dev` tag by running
   `docker compose --profile dev build`.
-5. Start the development environment using `docker compose --profile dev up -d`.
-6. Make your code modifications. Changes in the `src/` directory are reflected
+4. Start the development environment using `docker compose --profile dev up -d`.
+5. Make your code modifications. Changes in the `src/` directory are reflected
   in the dev containers due to volume mounts (no need to rebuild).
-7. Submit a job to the development containers using `docker exec`, targeting
+6. Submit a job to the development containers using `docker exec`, targeting
   the development master node (`spark-node-master-dev`).
-8. Check the job status at `$SERVER_IP:8081`, instead of the production port
+7. Check the job status at `$SERVER_IP:8081`, instead of the production port
   `$SERVER_IP:8080`.
 
 > [!WARNING]
