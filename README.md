@@ -102,7 +102,7 @@ For example, to submit the test jobs in `config/default_jobs.yaml` via
 `--json-string`, run the following command:
 
 ```bash
-docker exec spark-node-master ./submit.sh \
+docker exec spark-node-master-prod ./submit.sh \
     --json-string "$(yq -o=json .test_jobs ./config/default_jobs.yaml)"
 ```
 
@@ -110,7 +110,7 @@ Or from a file:
 
 ```bash
 yq -o=json .test_jobs ./config/default_jobs.yaml > /tmp/jobs.json
-docker exec spark-node-master ./submit.sh --json-file /tmp/jobs.json
+docker exec spark-node-master-prod ./submit.sh --json-file /tmp/jobs.json
 ```
 
 The command line interface also has multiple optional flags:
@@ -205,13 +205,13 @@ user 1003.
 
 ```bash
 # Extract recent years from frequently used tables on weekdays at 1 AM CST
-0 6 * * 1,2,3,4,5 docker exec spark-node-master ./submit.sh --json-string "$(yq -o=json .default_jobs /full/path/to/default_jobs.yaml)"
+0 6 * * 1,2,3,4,5 docker exec spark-node-master-prod ./submit.sh --json-string "$(yq -o=json .default_jobs /full/path/to/default_jobs.yaml)"
 
 # Extract all tables on Saturday at 1 AM CST
-0 6 * * 6 docker exec spark-node-master ./submit.sh --json-string "$(yq -o=json .weekend_jobs /full/path/to/default_jobs.yaml)"
+0 6 * * 6 docker exec spark-node-master-prod ./submit.sh --json-string "$(yq -o=json .weekend_jobs /full/path/to/default_jobs.yaml)"
 
 # Extract all test environment tables on Sunday at 1 AM CST
-0 6 * * 7 docker exec spark-node-master ./submit.sh --json-string "$(yq -o=json .weekend_jobs_test /full/path/to/default_jobs.yaml)" --no-run-github-workflow --extract-target test
+0 6 * * 7 docker exec spark-node-master-prod ./submit.sh --json-string "$(yq -o=json .weekend_jobs_test /full/path/to/default_jobs.yaml)" --no-run-github-workflow --extract-target test
 ```
 
 ## Structure
@@ -220,34 +220,34 @@ Here's a breakdown of important files and the purpose of each one:
 
 ```tree
 .
-├── docker-compose.yaml        - Defines the Spark nodes, environment, and networking
-├── Dockerfile                 - Defines dependencies bundled in each Spark node
-├── .env                       - Runtime configuration variables passed to containers
-├── pyproject.toml             - Project metadata and tool settings
-├── README.md                  - This file!
-├── run.sh                     - Entrypoint shell script to create Spark jobs
-├── .github/                   - GitHub Actions workflows for linting, builds, etc.
+├── docker-compose.yaml        # Defines the Spark nodes, environment, and networking
+├── Dockerfile                 # Defines dependencies bundled in each Spark node
+├── .env                       # Runtime configuration variables passed to containers
+├── pyproject.toml             # Project metadata and tool settings
+├── README.md                  # This file!
+├── run.sh                     # Entrypoint shell script to create Spark jobs
+├── .github/                   # GitHub Actions workflows for linting, builds, etc.
 ├── config/
-│   ├── default_jobs.yaml      - Define batches of Spark jobs (one per table)
-│   ├── default_predicates.sql - List of mutually exclusive SQL BETWEEN expressions
-│   ├── default_settings.yaml  - Runtime defaults and schema overrides
-│   ├── spark-defaults.conf    - Spark memory and driver settings
-│   └── table_definitions.yaml - Possible job values per table and schema overrides
+│   ├── default_jobs.yaml      # Define batches of Spark jobs (one per table)
+│   ├── default_predicates.sql # List of mutually exclusive SQL BETWEEN expressions
+│   ├── default_settings.yaml  # Runtime defaults and schema overrides
+│   ├── spark-defaults.conf    # Spark memory and driver settings
+│   └── table_definitions.yaml # Possible job values per table and schema overrides
 ├── drivers/
-│   └── ojdbc8.jar             - Not included, but necessary to connect to iasWorld
+│   └── ojdbc8.jar             # Not included, but necessary to connect to iasWorld
 ├── secrets/
-│   ├── AWS_CREDENTIALS_FILE   - AWS credentials config file specific to this job
-│   ├── GH_PEM                 - GitHub PEM file used to authorize workflow dispatch
-│   └── IPTS_PASSWORD          - Password file loaded at runtime into containers
+│   ├── AWS_CREDENTIALS_FILE   # AWS credentials config file specific to this job
+│   ├── GH_PEM                 # GitHub PEM file used to authorize workflow dispatch
+│   └── IPTS_PASSWORD          # Password file loaded at runtime into containers
 ├── src/
-│   ├── submit_jobs.py         - Job submission entrypoint. Takes JSON as input
-│   ├── submit.sh              - Helper to launch jobs using spark-submit
+│   ├── submit_jobs.py         # Job submission entrypoint. Takes JSON as input
+│   ├── submit.sh              # Helper to launch jobs using spark-submit
 │   └── utils/
-│       ├── aws.py             - AWS client class for triggering Glue crawlers
-│       ├── github.py          - GitHub client class for running Actions workflows
-│       ├── helpers.py         - Miscellaneous helper functions
-│       └── spark.py           - Spark job and session classes
+│       ├── aws.py             # AWS client class for triggering Glue crawlers
+│       ├── github.py          # GitHub client class for running Actions workflows
+│       ├── helpers.py         # Miscellaneous helper functions
+│       └── spark.py           # Spark job and session classes
 └── target/
-    ├── final/                 - Landing directory after Parquet repartitioning
-    └── initial/               - Landing directory for initial JDBC read output
+    ├── final/                 # Landing directory after Parquet repartitioning
+    └── initial/               # Landing directory for initial JDBC read output
 ```
