@@ -5,6 +5,9 @@ x-default: &node
   build:
     context: .
     dockerfile: Dockerfile
+    args:
+      - USER_ID=${UID:-1003}
+      - GROUP_ID=${GID:-0}
   volumes:
     - ./drivers:/jdbc:ro
     - ./src:/tmp/src:ro
