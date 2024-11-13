@@ -1,8 +1,7 @@
 x-default: &node
-  image: ${CCAO_REGISTRY_URL}/service-spark-iasworld:latest
   # Corresponds to the user set in the Dockerfile and the shiny-server
   # user on the server for proper write perms to mounted directories
-  user: 1003:0
+  user: "${UID}:0"
   build:
     context: .
     dockerfile: Dockerfile
@@ -19,100 +18,121 @@ x-default: &node
     - GH_PEM
     - IPTS_PRD_PASSWORD
     - IPTS_TST_PASSWORD
-  networks:
-    - sparknet
+
+# These environmental variables get templated/merged into the env vars of
+# containers. Usually YAML doesn't let you merge arrays, but compose allows it:
+# https://docs.docker.com/reference/compose-file/extension/#example-4
+x-spark-env: &spark-env
+  SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED: no
+  SPARK_RPC_AUTHENTICATION_ENABLED: no
+  SPARK_RPC_ENCRYPTION_ENABLED: no
+  SPARK_SSL_ENABLED: no
+  SPARK_USER: spark
+
+x-third-party-env: &third-party-env
+  AWS_SHARED_CREDENTIALS_FILE: /run/secrets/AWS_CREDENTIALS
+  AWS_S3_BUCKET:
+  AWS_S3_PREFIX:
+  GH_APP_ID:
+
+x-ipts-env: &ipts-env
+  IPTS_PRD_SERVICE_NAME:
+  IPTS_PRD_HOSTNAME:
+  IPTS_PRD_USERNAME:
+  IPTS_PRD_PORT:
+  IPTS_TST_SERVICE_NAME:
+  IPTS_TST_HOSTNAME:
+  IPTS_TST_USERNAME:
+  IPTS_TST_PORT:
 
 services:
   spark-node-master-prod:
     <<: *node
+    profiles: ["prod", ""] # empty string here runs when no profile specified
+    image: ${CCAO_REGISTRY_URL}/service-spark-iasworld:latest
     container_name: spark-node-master-prod
     hostname: spark-node-master-prod
     environment:
-      - SPARK_MODE=master
-
-      - AWS_SHARED_CREDENTIALS_FILE=/run/secrets/AWS_CREDENTIALS
-      - AWS_S3_BUCKET
-      - AWS_S3_PREFIX
-      - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
-      - SPARK_PUBLIC_DNS=${SPARK_PUBLIC_IP}
-      - SPARK_RPC_AUTHENTICATION_ENABLED=no
-      - SPARK_RPC_ENCRYPTION_ENABLED=no
-      - SPARK_SSL_ENABLED=no
-      - SPARK_USER=spark
-      - IPTS_PRD_SERVICE_NAME
-      - IPTS_PRD_HOSTNAME
-      - IPTS_PRD_USERNAME
-      - IPTS_PRD_PORT
-      - IPTS_TST_SERVICE_NAME
-      - IPTS_TST_HOSTNAME
-      - IPTS_TST_USERNAME
-      - IPTS_TST_PORT
-      - GH_APP_ID
+      <<: [*spark-env, *third-party-env, *ipts-env]
+      SPARK_MODE: master
+      SPARK_PUBLIC_DNS: ${SPARK_PUBLIC_IP}
     ports:
       - 4040:4040
       - 8080:8080
+    networks:
+      - sparknet-prod
+
+  spark-node-worker-prod:
+    <<: *node
+    profiles: ["prod", ""]
+    image: ${CCAO_REGISTRY_URL}/service-spark-iasworld:latest
+    container_name: spark-node-worker-prod
+    hostname: spark-node-worker-prod
+    depends_on:
+      - spark-node-master-prod
+    environment:
+      <<: [*spark-env, *third-party-env, *ipts-env]
+      SPARK_MODE: worker
+      SPARK_MASTER_URL: spark://spark-node-master-prod:7077
+      SPARK_WORKER_MEMORY: 96G
+      SPARK_WORKER_CORES: 28
+      SPARK_WORKER_WEBUI_PORT: 9090
+      SPARK_PUBLIC_DNS: ${SPARK_PUBLIC_IP}
+    ports:
+      - 9090:9090
+    networks:
+      - sparknet-prod
 
   spark-node-master-dev:
     <<: *node
+    profiles: ["dev"]
+    image: ${CCAO_REGISTRY_URL}/service-spark-iasworld:dev
     container_name: spark-node-master-dev
     hostname: spark-node-master-dev
     environment:
-      - SPARK_MODE=master
-
-      - AWS_SHARED_CREDENTIALS_FILE=/run/secrets/AWS_CREDENTIALS
-      - AWS_S3_BUCKET
-      - AWS_S3_PREFIX
-      - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
-      - SPARK_PUBLIC_DNS=${SPARK_PUBLIC_IP}
-      - SPARK_RPC_AUTHENTICATION_ENABLED=no
-      - SPARK_RPC_ENCRYPTION_ENABLED=no
-      - SPARK_SSL_ENABLED=no
-      - SPARK_USER=spark
-      - GH_APP_ID
+      <<: [*spark-env, *third-party-env, *ipts-env]
+      SPARK_MODE: master
+      SPARK_PUBLIC_DNS: ${SPARK_PUBLIC_IP}
     ports:
       - 4041:4041
       - 8081:8081
+    networks:
+      - sparknet-dev
 
-  spark-node-worker:
+  spark-node-worker-dev:
     <<: *node
-    container_name: spark-node-worker
-    hostname: spark-node-worker
+    profiles: ["dev"]
+    image: ${CCAO_REGISTRY_URL}/service-spark-iasworld:dev
+    container_name: spark-node-worker-dev
+    hostname: spark-node-worker-dev
+    depends_on:
+      - spark-node-master-dev
     environment:
-      - SPARK_MODE=worker
-      - SPARK_MASTER_URL=spark://spark-node-master:7077
-      - SPARK_WORKER_MEMORY=96G
-      - SPARK_WORKER_CORES=28
-      - SPARK_WORKER_WEBUI_PORT=9090
-
-      - AWS_SHARED_CREDENTIALS_FILE=/run/secrets/AWS_CREDENTIALS
-      - AWS_S3_BUCKET
-      - AWS_S3_PREFIX
-      - SPARK_PUBLIC_DNS=${SPARK_PUBLIC_IP}
-      - SPARK_RPC_AUTHENTICATION_ENABLED=no
-      - SPARK_RPC_ENCRYPTION_ENABLED=no
-      - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
-      - SPARK_SSL_ENABLED=no
-      - SPARK_USER=spark
-      - IPTS_PRD_SERVICE_NAME
-      - IPTS_PRD_HOSTNAME
-      - IPTS_PRD_USERNAME
-      - IPTS_PRD_PORT
-      - IPTS_TST_SERVICE_NAME
-      - IPTS_TST_HOSTNAME
-      - IPTS_TST_USERNAME
-      - IPTS_TST_PORT
-      - GH_APP_ID
+      <<: [*spark-env, *third-party-env, *ipts-env]
+      SPARK_MODE: worker
+      SPARK_MASTER_URL: spark://spark-node-master-dev:7077
+      SPARK_WORKER_MEMORY: 48G
+      SPARK_WORKER_CORES: 14
+      SPARK_WORKER_WEBUI_PORT: 9091
+      SPARK_PUBLIC_DNS: ${SPARK_PUBLIC_IP}
     ports:
-      - 9090:9090
+      - 9091:9091
+    networks:
+      - sparknet-dev
 
 # Using a dedicated subnet because the Docker default subnet conflicts
 # with some of the CCAO's internal routing
 networks:
-  sparknet:
+  sparknet-prod:
     ipam:
       config:
         - subnet: 211.55.0.0/16
-    name: sparknet
+    name: sparknet-prod
+  sparknet-dev:
+    ipam:
+      config:
+        - subnet: 211.54.0.0/16
+    name: sparknet-dev
 
 secrets:
   AWS_CREDENTIALS:
