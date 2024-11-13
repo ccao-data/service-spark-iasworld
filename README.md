@@ -226,10 +226,12 @@ A typical development workflow might look something like:
   setup to the development repository. See [Files not included](#files-not-included).
 3. Export `UID` and `GID` using something like the command below. This will
   set the user for the container so the output files have the correct permissions.
+
     ```bash
     export UID=$(id -u)
     export GID=$(id -g)
     ```
+
 4. Build the Docker container targeting the `dev` tag by running
   `docker compose --profile dev build`.
 5. Start the development environment using `docker compose --profile dev up -d`.
@@ -253,25 +255,24 @@ Batches are currently scheduled via
 [`cron`](https://man7.org/linux/man-pages/man8/cron.8.html). To edit the
 schedule file, use `crontab -e` as the main server user. The example crontab
 file below schedules daily jobs for frequently updated tables and weekly ones
-for rarely-updated tables. Note that the jobs currently _must_ be run as
-user 1003.
+for rarely-updated tables.
 
 ```bash
 # Extract recent years from frequently used tables on weekdays at 1 AM CST
-0 6 * * 1,2,3,4,5 docker exec spark-node-master-prod ./submit.sh --json-string "$(yq -o=json .default_jobs /full/path/to/default_jobs.yaml)"
+0 6 * * 1,2,3,4,5 docker exec spark-node-master-prod ./submit.sh --json-string "$(yq -o=json .default_jobs /full/path/to/default_jobs.yaml)" --run-github-workflow --run-glue-crawler --upload-data --upload-logs
 
 # Extract all tables on Saturday at 1 AM CST
-0 6 * * 6 docker exec spark-node-master-prod ./submit.sh --json-string "$(yq -o=json .weekend_jobs /full/path/to/default_jobs.yaml)"
+0 6 * * 6 docker exec spark-node-master-prod ./submit.sh --json-string "$(yq -o=json .weekend_jobs /full/path/to/default_jobs.yaml)" --run-github-workflow --run-glue-crawler --upload-data --upload-logs
 
 # Extract all test environment tables on Sunday at 1 AM CST
-0 6 * * 7 docker exec spark-node-master-prod ./submit.sh --json-string "$(yq -o=json .weekend_jobs_test /full/path/to/default_jobs.yaml)" --no-run-github-workflow --extract-target test
+0 6 * * 7 docker exec spark-node-master-prod ./submit.sh --json-string "$(yq -o=json .weekend_jobs_test /full/path/to/default_jobs.yaml)" --no-run-github-workflow --run-glue-crawler --upload-data --upload-logs --extract-target test
 ```
 
 ## Structure
 
 Here's a breakdown of important files and the purpose of each one:
 
-```tree
+```bash
 .
 ├── docker-compose.yaml        # Defines the Spark nodes, environment, and networking
 ├── Dockerfile                 # Defines dependencies bundled in each Spark node
