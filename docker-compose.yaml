@@ -24,9 +24,8 @@ x-default: &node
   networks:
     - sparknet
 
-# These environmental variables get templated/merged into the env vars of
-# containers. Usually YAML doesn't let you merge arrays, but Compose allows it:
-# https://docs.docker.com/reference/compose-file/extension/#example-4
+# These environmental variables get merged into the env vars of containers.
+# See: https://docs.docker.com/reference/compose-file/extension/#example-4
 x-spark-env: &spark-env
   SPARK_MASTER_URL: spark://spark-node-master${ENV:+-}${ENV:?}:7077
   SPARK_PUBLIC_DNS: ${SPARK_PUBLIC_IP}
