@@ -14,12 +14,4 @@ RUN mkdir -p /tmp/python && \
 
 COPY pyproject.toml /tmp/python
 RUN pip install --no-cache-dir /tmp/python/.
-
-# User corresponds to dedicated shiny-server user on server OR the user
-# specified via build args. Necessary for proper write permissions to target
-# directories. Note that the group must remain root due to issues with the
-# upstream container
-ARG USER_ID=1003
-
-USER ${USER_ID}:0
 WORKDIR /tmp/src
