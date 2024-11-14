@@ -223,11 +223,11 @@ A typical development workflow might look something like:
   repository. See [Files not included](#files-not-included).
 3. Start the development environment using
   `docker compose --env-file .env.dev up -d`.
-5. Make your code modifications. Changes in the `src/` directory are reflected
+4. Make your code modifications. Changes in the `src/` directory are reflected
   in the containers due to volume mounts (no need to rebuild).
-6. Submit a job to the development containers using `docker exec`, targeting
+5. Submit a job to the development containers using `docker exec`, targeting
   the development master node (`spark-node-master-dev`).
-7. Check the job status at `$SERVER_IP:8082`, instead of the production port
+6. Check the job status at `$SERVER_IP:8082`, instead of the production port
   `$SERVER_IP:8080`.
 
 > [!WARNING]
