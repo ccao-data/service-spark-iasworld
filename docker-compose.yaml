@@ -57,6 +57,7 @@ services:
       <<: [*spark-env]
       SPARK_MODE: master
       SPARK_UI_PORT: 4040
+      SPARK_EXECUTOR_MEMORY: 96g
       SPARK_MASTER_WEBUI_PORT: 8080
     ports:
       - 4040:4040
@@ -95,6 +96,7 @@ services:
       <<: [*spark-env]
       SPARK_MODE: master
       SPARK_UI_PORT: 4042
+      SPARK_EXECUTOR_MEMORY: 48g
       # 8081 is the worker port by default and binding it will block jobs. So
       # we skip to 8082 instead of using the incremented port of 8081
       SPARK_MASTER_WEBUI_PORT: 8082
