@@ -19,6 +19,8 @@ x-default: &node
     - GH_PEM
     - IPTS_PRD_PASSWORD
     - IPTS_TST_PASSWORD
+    - IPTS_CONNECTION
+    - SPARK_ENV
   networks:
     - sparknet
 
@@ -34,18 +36,8 @@ x-spark-env: &spark-env
   SPARK_SSL_ENABLED: no
 
   AWS_SHARED_CREDENTIALS_FILE: /run/secrets/AWS_CREDENTIALS
-  AWS_S3_BUCKET:
-  AWS_S3_PREFIX:
-  GH_APP_ID:
-
-  IPTS_PRD_SERVICE_NAME:
-  IPTS_PRD_HOSTNAME:
-  IPTS_PRD_USERNAME:
-  IPTS_PRD_PORT:
-  IPTS_TST_SERVICE_NAME:
-  IPTS_TST_HOSTNAME:
-  IPTS_TST_USERNAME:
-  IPTS_TST_PORT:
+  IPTS_CONNECTION_FILE: /run/secrets/IPTS_CONNECTION
+  SPARK_ENV_FILE: /run/secrets/SPARK_ENV
 
 services:
   spark-node-master:
@@ -90,7 +82,11 @@ secrets:
     file: secrets/AWS_CREDENTIALS_FILE
   GH_PEM:
     file: secrets/GH_PEM
+  IPTS_CONNECTION:
+    file: secrets/IPTS_CONNECTION
   IPTS_PRD_PASSWORD:
     file: secrets/IPTS_PRD_PASSWORD
   IPTS_TST_PASSWORD:
     file: secrets/IPTS_TST_PASSWORD
+  SPARK_ENV:
+    file: secrets/SPARK_ENV

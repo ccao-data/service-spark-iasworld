@@ -1,5 +1,11 @@
 #!/bin/bash
 
+# Load environmental variables from Compose secrets file
+set -o allexport && \
+    source "$SPARK_ENV_FILE" && \
+    source "$IPTS_CONNECTION_FILE" && \
+    set +o allexport
+
 # The config option used here is a runtime option that sets the port for the
 # Spark application (group of jobs). Note that it must be passed as an integer,
 # hence the double parenthesis. Note also that setting this statically means
