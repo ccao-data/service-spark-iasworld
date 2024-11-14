@@ -1,6 +1,7 @@
 #!/bin/bash
 
 # Load environmental variables from Compose secrets file
+# shellcheck disable=SC1090
 set -o allexport && \
     source "$SPARK_ENV_FILE" && \
     source "$IPTS_CONNECTION_FILE" && \

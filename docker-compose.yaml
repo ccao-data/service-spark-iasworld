@@ -2,7 +2,7 @@ x-default: &node
   # Corresponds to the user set in the Dockerfile and the shiny-server
   # user on the server for proper write perms to mounted directories
   user: "${UID:-1003}:0"
-  image: ${CCAO_REGISTRY_URL}/service-spark-iasworld${ENV:+:}${ENV:?}
+  image: ghcr.io/ccao-data/service-spark-iasworld${ENV:+:}${ENV:?}
   build:
     context: .
     dockerfile: Dockerfile
@@ -42,7 +42,6 @@ x-spark-env: &spark-env
 services:
   spark-node-master:
     <<: *node
-    image: ${CCAO_REGISTRY_URL}/service-spark-iasworld${ENV:+:}${ENV:?}
     container_name: spark-node-master${ENV:+-}${ENV:?}
     hostname: spark-node-master${ENV:+-}${ENV:?}
     environment:
