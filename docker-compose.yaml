@@ -2,9 +2,11 @@ x-default: &node
   # Corresponds to the user set in the Dockerfile and the shiny-server
   # user on the server for proper write perms to mounted directories
   user: "${UID:-1003}:0"
+  image: ${CCAO_REGISTRY_URL}/service-spark-iasworld${DEV:+:}${DEV:?}
   build:
     context: .
     dockerfile: Dockerfile
+  restart: ${SPARK_RESTART_POLICY:?}
   volumes:
     - ./drivers:/jdbc:ro
     - ./src:/tmp/src:ro
@@ -17,12 +19,14 @@ x-default: &node
     - GH_PEM
     - IPTS_PRD_PASSWORD
     - IPTS_TST_PASSWORD
+  networks:
+    - sparknet
 
 # These environmental variables get templated/merged into the env vars of
 # containers. Usually YAML doesn't let you merge arrays, but Compose allows it:
 # https://docs.docker.com/reference/compose-file/extension/#example-4
 x-spark-env: &spark-env
-  SPARK_MASTER_URL: spark://spark-node-master:7077
+  SPARK_MASTER_URL: spark://spark-node-master${DEV:+-}${DEV:?}:7077
   SPARK_PUBLIC_DNS: ${SPARK_PUBLIC_IP}
   SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED: no
   SPARK_RPC_AUTHENTICATION_ENABLED: no
@@ -44,99 +48,42 @@ x-spark-env: &spark-env
   IPTS_TST_PORT:
 
 services:
-  spark-node-master-prod:
+  spark-node-master:
     <<: *node
-    profiles: ["prod", ""] # empty string here runs when no profile is specified
-    image: ${CCAO_REGISTRY_URL}/service-spark-iasworld:latest
-    container_name: spark-node-master-prod
-    hostname: spark-node-master
-    restart: unless-stopped
+    image: ${CCAO_REGISTRY_URL}/service-spark-iasworld${DEV:+:}${DEV:?}
+    container_name: spark-node-master${DEV:+-}${DEV:?}
+    hostname: spark-node-master${DEV:+-}${DEV:?}
     environment:
-      <<: [*spark-env]
+      <<: *spark-env
       SPARK_MODE: master
-      SPARK_UI_PORT: 4040
-      SPARK_EXECUTOR_MEMORY: 96g
-      SPARK_MASTER_WEBUI_PORT: 8080
+      SPARK_UI_PORT: ${SPARK_UI_PORT:?}
+      SPARK_EXECUTOR_MEMORY: ${SPARK_EXECUTOR_MEMORY:?}
+      SPARK_MASTER_WEBUI_PORT: ${SPARK_MASTER_WEBUI_PORT:?}
     ports:
-      - 4040:4040
-      - 8080:8080
-    networks:
-      - sparknet-prod
+      - ${SPARK_UI_PORT}:${SPARK_UI_PORT}
+      - ${SPARK_MASTER_WEBUI_PORT}:${SPARK_MASTER_WEBUI_PORT}
 
-  spark-node-worker-prod:
+  spark-node-worker:
     <<: *node
-    profiles: ["prod", ""]
-    image: ${CCAO_REGISTRY_URL}/service-spark-iasworld:latest
-    container_name: spark-node-worker-prod
-    hostname: spark-node-worker
-    restart: unless-stopped
-    depends_on:
-      - spark-node-master-prod
+    container_name: spark-node-worker${DEV:+-}${DEV:?}
+    hostname: spark-node-worker${DEV:+-}${DEV:?}
     environment:
-      <<: [*spark-env]
+      <<: *spark-env
       SPARK_MODE: worker
-      SPARK_WORKER_MEMORY: 96G
-      SPARK_WORKER_CORES: 32
-      SPARK_WORKER_WEBUI_PORT: 9090
+      SPARK_WORKER_MEMORY: ${SPARK_WORKER_MEMORY:?}
+      SPARK_WORKER_CORES: ${SPARK_WORKER_CORES:?}
+      SPARK_WORKER_WEBUI_PORT: ${SPARK_WORKER_WEBUI_PORT:?}
     ports:
-      - 9090:9090
-    networks:
-      - sparknet-prod
-
-  spark-node-master-dev:
-    <<: *node
-    profiles: ["dev"]
-    image: ${CCAO_REGISTRY_URL}/service-spark-iasworld:dev
-    container_name: spark-node-master-dev
-    hostname: spark-node-master
-    restart: no
-    environment:
-      <<: [*spark-env]
-      SPARK_MODE: master
-      SPARK_UI_PORT: 4042
-      SPARK_EXECUTOR_MEMORY: 48g
-      # 8081 is the worker port by default and binding it will block jobs. So
-      # we skip to 8082 instead of using the incremented port of 8081
-      SPARK_MASTER_WEBUI_PORT: 8082
-    ports:
-      - 4042:4042
-      - 8082:8082
-    networks:
-      - sparknet-dev
-
-  spark-node-worker-dev:
-    <<: *node
-    profiles: ["dev"]
-    image: ${CCAO_REGISTRY_URL}/service-spark-iasworld:dev
-    container_name: spark-node-worker-dev
-    hostname: spark-node-worker
-    restart: no
-    depends_on:
-      - spark-node-master-dev
-    environment:
-      <<: [*spark-env]
-      SPARK_MODE: worker
-      SPARK_WORKER_MEMORY: 48G
-      SPARK_WORKER_CORES: 14
-      SPARK_WORKER_WEBUI_PORT: 9092
-    ports:
-      - 9092:9092
-    networks:
-      - sparknet-dev
+      - ${SPARK_WORKER_WEBUI_PORT}:${SPARK_WORKER_WEBUI_PORT}
 
 # Using a dedicated subnet because the Docker default subnet conflicts
 # with some of the CCAO's internal routing
 networks:
-  sparknet-prod:
+  sparknet:
     ipam:
       config:
         - subnet: 211.55.0.0/16
-    name: sparknet-prod
-  sparknet-dev:
-    ipam:
-      config:
-        - subnet: 211.54.0.0/16
-    name: sparknet-dev
+    name: sparknet
 
 secrets:
   AWS_CREDENTIALS:

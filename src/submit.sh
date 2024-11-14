@@ -5,6 +5,7 @@
 # hence the double parenthesis. Note also that setting this statically means
 # we can only run one Spark application at a time (per environment)
 spark-submit \
+    --conf "spark.master=${SPARK_MASTER_URL}" \
     --conf "spark.ui.port=$((SPARK_UI_PORT))" \
     --conf "spark.executor.memory=${SPARK_EXECUTOR_MEMORY}" \
     /tmp/src/submit_jobs.py "$@"
