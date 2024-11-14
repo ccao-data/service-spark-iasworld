@@ -21,14 +21,15 @@ x-default: &node
     - IPTS_TST_PASSWORD
 
 # These environmental variables get templated/merged into the env vars of
-# containers. Usually YAML doesn't let you merge arrays, but compose allows it:
+# containers. Usually YAML doesn't let you merge arrays, but Compose allows it:
 # https://docs.docker.com/reference/compose-file/extension/#example-4
 x-spark-env: &spark-env
+  SPARK_MASTER_URL: spark://spark-node-master:7077
+  SPARK_PUBLIC_DNS: ${SPARK_PUBLIC_IP}
   SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED: no
   SPARK_RPC_AUTHENTICATION_ENABLED: no
   SPARK_RPC_ENCRYPTION_ENABLED: no
   SPARK_SSL_ENABLED: no
-  SPARK_USER: spark
 
   AWS_SHARED_CREDENTIALS_FILE: /run/secrets/AWS_CREDENTIALS
   AWS_S3_BUCKET:
@@ -47,16 +48,16 @@ x-spark-env: &spark-env
 services:
   spark-node-master-prod:
     <<: *node
-    profiles: ["prod", ""] # empty string here runs when no profile specified
+    profiles: ["prod", ""] # empty string here runs when no profile is specified
     image: ${CCAO_REGISTRY_URL}/service-spark-iasworld:latest
     container_name: spark-node-master-prod
-    hostname: spark-node-master-prod
+    hostname: spark-node-master
     restart: unless-stopped
     environment:
       <<: [*spark-env]
       SPARK_MODE: master
-      SPARK_PUBLIC_DNS: ${SPARK_PUBLIC_IP}
-      SPARK_MASTER_WEBUI_PORT: "8080"
+      SPARK_UI_PORT: 4040
+      SPARK_MASTER_WEBUI_PORT: 8080
     ports:
       - 4040:4040
       - 8080:8080
@@ -68,23 +69,16 @@ services:
     profiles: ["prod", ""]
     image: ${CCAO_REGISTRY_URL}/service-spark-iasworld:latest
     container_name: spark-node-worker-prod
-    hostname: spark-node-worker-prod
+    hostname: spark-node-worker
     restart: unless-stopped
     depends_on:
       - spark-node-master-prod
     environment:
       <<: [*spark-env]
       SPARK_MODE: worker
-      SPARK_MASTER_URL: spark://spark-node-master-prod:7077
-      SPARK_MASTER_HOST: spark://spark-node-master-prod:7077
       SPARK_WORKER_MEMORY: 96G
-      SPARK_WORKER_CORES: 28
+      SPARK_WORKER_CORES: 32
       SPARK_WORKER_WEBUI_PORT: 9090
-      SPARK_PUBLIC_DNS: ${SPARK_PUBLIC_IP}
-      # Driver memory can be low, as it's only used for the JDBC connection
-      SPARK_DRIVER_MEMORY: 2g
-      # Total memory available to the worker, across all jobs
-      SPARK_EXECUTOR_MEMORY: 96g
     ports:
       - 9090:9090
     networks:
@@ -95,16 +89,18 @@ services:
     profiles: ["dev"]
     image: ${CCAO_REGISTRY_URL}/service-spark-iasworld:dev
     container_name: spark-node-master-dev
-    hostname: spark-node-master-dev
+    hostname: spark-node-master
     restart: no
     environment:
       <<: [*spark-env]
       SPARK_MODE: master
-      SPARK_PUBLIC_DNS: ${SPARK_PUBLIC_IP}
-      SPARK_MASTER_WEBUI_PORT: "8081"
+      SPARK_UI_PORT: 4042
+      # 8081 is the worker port by default and binding it will block jobs. So
+      # we skip to 8082 instead of using the incremented port of 8081
+      SPARK_MASTER_WEBUI_PORT: 8082
     ports:
-      - 4041:4041
-      - 8081:8081
+      - 4042:4042
+      - 8082:8082
     networks:
       - sparknet-dev
 
@@ -113,23 +109,18 @@ services:
     profiles: ["dev"]
     image: ${CCAO_REGISTRY_URL}/service-spark-iasworld:dev
     container_name: spark-node-worker-dev
-    hostname: spark-node-worker-dev
+    hostname: spark-node-worker
     restart: no
     depends_on:
       - spark-node-master-dev
     environment:
       <<: [*spark-env]
       SPARK_MODE: worker
-      SPARK_MASTER_URL: spark://spark-node-master-dev:7077
-      SPARK_MASTER_HOST: spark://spark-node-master-dev:7077
       SPARK_WORKER_MEMORY: 48G
       SPARK_WORKER_CORES: 14
-      SPARK_WORKER_WEBUI_PORT: 9091
-      SPARK_PUBLIC_DNS: ${SPARK_PUBLIC_IP}
-      SPARK_DRIVER_MEMORY: 2g
-      SPARK_EXECUTOR_MEMORY: 48g
+      SPARK_WORKER_WEBUI_PORT: 9092
     ports:
-      - 9091:9091
+      - 9092:9092
     networks:
       - sparknet-dev
 

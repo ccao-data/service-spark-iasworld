@@ -231,7 +231,7 @@ A typical development workflow might look something like:
   in the dev containers due to volume mounts (no need to rebuild).
 6. Submit a job to the development containers using `docker exec`, targeting
   the development master node (`spark-node-master-dev`).
-7. Check the job status at `$SERVER_IP:8081`, instead of the production port
+7. Check the job status at `$SERVER_IP:8082`, instead of the production port
   `$SERVER_IP:8080`.
 
 > [!WARNING]
