@@ -2,7 +2,7 @@ x-default: &node
   # Corresponds to the user set in the Dockerfile and the shiny-server
   # user on the server for proper write perms to mounted directories
   user: "${UID:-1003}:0"
-  image: ${CCAO_REGISTRY_URL}/service-spark-iasworld${DEV:+:}${DEV:?}
+  image: ${CCAO_REGISTRY_URL}/service-spark-iasworld${ENV:+:}${ENV:?}
   build:
     context: .
     dockerfile: Dockerfile
@@ -28,7 +28,7 @@ x-default: &node
 # containers. Usually YAML doesn't let you merge arrays, but Compose allows it:
 # https://docs.docker.com/reference/compose-file/extension/#example-4
 x-spark-env: &spark-env
-  SPARK_MASTER_URL: spark://spark-node-master${DEV:+-}${DEV:?}:7077
+  SPARK_MASTER_URL: spark://spark-node-master${ENV:+-}${ENV:?}:7077
   SPARK_PUBLIC_DNS: ${SPARK_PUBLIC_IP}
   SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED: no
   SPARK_RPC_AUTHENTICATION_ENABLED: no
@@ -42,9 +42,9 @@ x-spark-env: &spark-env
 services:
   spark-node-master:
     <<: *node
-    image: ${CCAO_REGISTRY_URL}/service-spark-iasworld${DEV:+:}${DEV:?}
-    container_name: spark-node-master${DEV:+-}${DEV:?}
-    hostname: spark-node-master${DEV:+-}${DEV:?}
+    image: ${CCAO_REGISTRY_URL}/service-spark-iasworld${ENV:+:}${ENV:?}
+    container_name: spark-node-master${ENV:+-}${ENV:?}
+    hostname: spark-node-master${ENV:+-}${ENV:?}
     environment:
       <<: *spark-env
       SPARK_MODE: master
@@ -57,8 +57,8 @@ services:
 
   spark-node-worker:
     <<: *node
-    container_name: spark-node-worker${DEV:+-}${DEV:?}
-    hostname: spark-node-worker${DEV:+-}${DEV:?}
+    container_name: spark-node-worker${ENV:+-}${ENV:?}
+    hostname: spark-node-worker${ENV:+-}${ENV:?}
     environment:
       <<: *spark-env
       SPARK_MODE: worker
