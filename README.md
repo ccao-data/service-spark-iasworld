@@ -18,7 +18,7 @@ contain multiple extract jobs. Once all jobs for a batch are complete, we also
 (optionally) trigger four additional processes. In order:
 
 1. Upload the extracted Parquet files to AWS S3. Uploads to the bucket and
-   prefix specified in the `.env` file.
+   prefix specified in the `SPARK_ENV` secrets file.
 2. Run an AWS Glue crawler to update table data types and/or partitions in
    the Glue data catalog (which powers Athena). This process only occurs if
    _new_ files are uploaded i.e. those not previously seen on S3.
@@ -192,22 +192,19 @@ populate the following:
 - `drivers/ojdbc8.jar` - This is the JDBC driver for our Oracle backend and
   can be found for free on [Oracle's site](https://www.oracle.com/ca-en/database/technologies/appdev/jdbc-downloads.html).
 - `secrets/` - These are credential files needed to connect to other systems.
-- `.env` - This file sets a few non-critical but still private options.
 
 ## Using the development environment
 
 The Docker Compose stack we use to run Spark (via `docker compose up -d`)
 has a separate development environment that can be used to test code changes
-without disrupting the production containers.
-
-The development environment uses
-[Compose profiles](https://docs.docker.com/compose/how-tos/profiles/) to run
-a parallel set of containers with tweaked setup/environment variables.
+without disrupting the production containers. The development environment is
+configured via a dedicated
+[env-file](https://docs.docker.com/compose/how-tos/environment-variables/variable-interpolation/#additional-information-1).
 
 To start the development environment, run:
 
 ```bash
-docker compose --profile dev up -d
+docker compose --env-file .env.dev up -d
 ```
 
 To submit a job to the development environment, change the container target
@@ -222,13 +219,12 @@ A typical development workflow might look something like:
 
 1. Clone the repository to your own machine or home directory. Do _not_ use
   the production `shiny-server` copy of the repository for development.
-2. Copy the secrets, environmental variables, and drivers from the production
-  setup to the development repository. See [Files not included](#files-not-included).
-3. Build the Docker container targeting the `dev` tag by running
-  `docker compose --profile dev build`.
-4. Start the development environment using `docker compose --profile dev up -d`.
+2. Copy the secrets and drivers from the production setup to the development
+  repository. See [Files not included](#files-not-included).
+3. Start the development environment using
+  `docker compose --env-file .env.dev up -d`.
 5. Make your code modifications. Changes in the `src/` directory are reflected
-  in the dev containers due to volume mounts (no need to rebuild).
+  in the containers due to volume mounts (no need to rebuild).
 6. Submit a job to the development containers using `docker exec`, targeting
   the development master node (`spark-node-master-dev`).
 7. Check the job status at `$SERVER_IP:8082`, instead of the production port
@@ -268,7 +264,8 @@ Here's a breakdown of important files and the purpose of each one:
 .
 ├── docker-compose.yaml        # Defines the Spark nodes, environment, and networking
 ├── Dockerfile                 # Defines dependencies bundled in each Spark node
-├── .env                       # Runtime configuration variables passed to containers
+├── .env                       # Setup variables for the production environment
+├── .env.dev                   # Alternative env for development and testing
 ├── pyproject.toml             # Project metadata and tool settings
 ├── README.md                  # This file!
 ├── run.sh                     # Entrypoint shell script to create Spark jobs
