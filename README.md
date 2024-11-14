@@ -204,7 +204,7 @@ configured via a dedicated
 To start the development environment, run:
 
 ```bash
-docker compose --env-file .env.dev up -d
+docker compose up -d
 ```
 
 To submit a job to the development environment, change the container target
