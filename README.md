@@ -221,8 +221,7 @@ A typical development workflow might look something like:
   the production `shiny-server` copy of the repository for development.
 2. Copy the secrets and drivers from the production setup to the development
   repository. See [Files not included](#files-not-included).
-3. Start the development environment using
-  `docker compose --env-file .env.dev up -d`.
+3. Start the development environment using `docker compose up -d`.
 4. Make your code modifications. Changes in the `src/` directory are reflected
   in the containers due to volume mounts (no need to rebuild).
 5. Submit a job to the development containers using `docker exec`, targeting
@@ -264,8 +263,8 @@ Here's a breakdown of important files and the purpose of each one:
 .
 ├── docker-compose.yaml        # Defines the Spark nodes, environment, and networking
 ├── Dockerfile                 # Defines dependencies bundled in each Spark node
-├── .env                       # Setup variables for the production environment
-├── .env.dev                   # Alternative env for development and testing
+├── .env                       # Default env file with development settings
+├── .env.prod                  # Alternative env file with production settings
 ├── pyproject.toml             # Project metadata and tool settings
 ├── README.md                  # This file!
 ├── run.sh                     # Entrypoint shell script to create Spark jobs
