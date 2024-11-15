@@ -248,7 +248,10 @@ def submit_jobs(
         github.run_workflow(
             repository=(github.gh_api_url + "ccao-data/data-architecture"),
             workflow="test_dbt_models.yaml",
-            inputs={"upload_test_results": True},
+            inputs={
+                "selector": "select_data_test_iasworld",
+                "upload_test_results": True,
+            },
         )
 
     # Print table names and descriptions for extracted tables
