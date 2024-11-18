@@ -102,7 +102,7 @@ For example, to submit the test jobs in `config/default_jobs.yaml` via
 `--json-string`, run the following command:
 
 ```bash
-docker exec spark-node-master-prod ./submit.sh \
+docker compose exec spark-node-master ./submit.sh \
     --json-string "$(yq -o=json .test_jobs ./config/default_jobs.yaml)"
 ```
 
@@ -110,7 +110,7 @@ Or from a file:
 
 ```bash
 yq -o=json .test_jobs ./config/default_jobs.yaml > /tmp/jobs.json
-docker exec spark-node-master-prod ./submit.sh --json-file /tmp/jobs.json
+docker compose exec spark-node-master ./submit.sh --json-file /tmp/jobs.json
 ```
 
 The command line interface also has multiple optional flags:
