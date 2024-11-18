@@ -30,9 +30,10 @@ contain multiple extract jobs. Once all jobs for a batch are complete, we also
 ## Submitting job batches
 
 > [!NOTE]
-> Before attempting to submit batches to the cluster, first make sure the Spark
-> Docker Compose stack is active by running `docker compose up -d` in the
-> repository. Also, make sure all secret and `.env` files are populated, see
+> Before attempting to submit batches to the cluster, first make sure the
+> production Spark Docker Compose stack is active by running
+> `docker compose --profile prod up -d` in the repository. Also, make sure all
+> secret and driver files are populated, see
 > [Files not included](#files-not-included) for more information.
 
 `service-spark-iasworld` job batches are submitted via JSON, either as a string
@@ -102,7 +103,7 @@ For example, to submit the test jobs in `config/default_jobs.yaml` via
 `--json-string`, run the following command:
 
 ```bash
-docker compose exec spark-node-master ./submit.sh \
+docker exec spark-node-master-prod ./submit.sh \
     --json-string "$(yq -o=json .test_jobs ./config/default_jobs.yaml)"
 ```
 
@@ -110,7 +111,7 @@ Or from a file:
 
 ```bash
 yq -o=json .test_jobs ./config/default_jobs.yaml > /tmp/jobs.json
-docker compose exec spark-node-master ./submit.sh --json-file /tmp/jobs.json
+docker exec spark-node-master-prod ./submit.sh --json-file /tmp/jobs.json
 ```
 
 The command line interface also has multiple optional flags:
@@ -199,12 +200,21 @@ The Docker Compose stack we use to run Spark (via `docker compose up -d`)
 has a separate development environment that can be used to test code changes
 without disrupting the production containers. The development environment is
 configured via a dedicated
-[env-file](https://docs.docker.com/compose/how-tos/environment-variables/variable-interpolation/#env-file).
+[Compose profile](https://docs.docker.com/compose/how-tos/profiles/) and is
+used by default (with no profile specified).
 
 To start the development environment, run:
 
 ```bash
 docker compose up -d
+# OR run
+docker compose --profile dev up -d
+```
+
+To start the production environment:
+
+```bash
+docker compose --profile prod up -d
 ```
 
 To submit a job to the development environment, change the container target
@@ -265,8 +275,6 @@ Here's a breakdown of important files and the purpose of each one:
 .
 ├── docker-compose.yaml        # Defines the Spark nodes, environment, and networking
 ├── Dockerfile                 # Defines dependencies bundled in each Spark node
-├── .env                       # Default env file with development settings
-├── .env.prod                  # Alternative env file with production settings
 ├── pyproject.toml             # Project metadata and tool settings
 ├── README.md                  # This file!
 ├── run.sh                     # Entrypoint shell script to create Spark jobs
