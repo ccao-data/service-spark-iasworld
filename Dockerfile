@@ -2,6 +2,7 @@ FROM bitnami/spark:3.5.1
 SHELL ["/bin/bash", "-euo", "pipefail", "-c"]
 
 # Switch to root user so we can install jq and yq for parsing JSON/YAML
+# hadolint ignore=DL3002
 USER root
 RUN mkdir -p /tmp/python && \
     mkdir -p /var/lib/apt/lists/partial && \
@@ -14,8 +15,4 @@ RUN mkdir -p /tmp/python && \
 
 COPY pyproject.toml /tmp/python
 RUN pip install --no-cache-dir /tmp/python/.
-
-# User corresponds to dedicated shiny-server user on server. Necessary for
-# proper write permissions to target directories
-USER 1003:0
 WORKDIR /tmp/src

@@ -60,49 +60,49 @@ def parse_args(defaults) -> argparse.Namespace:
         "--json-file",
         type=str,
         nargs="?",
-        help="""
-        Path to a JSON file containing job configuration(s)". The path is
-        relative to the project `config/` directory
-        """,
+        help=(
+            "Path to a JSON file containing job configuration(s). The path is "
+            "relative to the project `config/` directory."
+        ),
     )
     parser.add_argument(
         "--json-string",
         type=str,
         nargs="?",
-        help="JSON string containing job configurations(s)",
+        help="JSON string containing job configurations(s).",
     )
     parser.add_argument(
         "--run-github-workflow",
         action=argparse.BooleanOptionalAction,
         required=False,
-        default=defaults.get("run_github_workflow", True),
-        help="Run GitHub Actions workflow to run dbt tests. Defaults to True.",
+        default=defaults.get("run_github_workflow", False),
+        help="Run GitHub Actions workflow to run dbt tests. Defaults to False.",
     )
     parser.add_argument(
         "--run-glue-crawler",
         action=argparse.BooleanOptionalAction,
         required=False,
-        default=defaults.get("run_glue_crawler", True),
+        default=defaults.get("run_glue_crawler", False),
         help=(
             "Run Glue crawler to discover new partitions. Only runs if "
-            "previously unseen files are uploaded to S3. Defaults to True."
+            "previously unseen files are uploaded to S3. Defaults to False."
         ),
     )
     parser.add_argument(
         "--upload-logs",
         action=argparse.BooleanOptionalAction,
         required=False,
-        default=defaults.get("upload_logs", True),
-        help="Toggle upload of job logs to AWS CloudWatch. Defaults to True",
+        default=defaults.get("upload_logs", False),
+        help="Toggle upload of job logs to AWS CloudWatch. Defaults to False.",
     )
     parser.add_argument(
         "--upload-data",
         action=argparse.BooleanOptionalAction,
         required=False,
-        default=defaults.get("upload_data", True),
+        default=defaults.get("upload_data", False),
         help=(
             "Toggle upload of extracted files to AWS S3. If set to False, "
-            "files will still be created locally. Defaults to True."
+            "files will still be created locally. Defaults to False."
         ),
     )
 
@@ -114,10 +114,9 @@ def submit_jobs(
     extract_target: str,
     json_file: str | None = None,
     json_string: str | None = None,
-    run_github_workflow: bool = True,
-    run_glue_crawler: bool = True,
-    upload_logs: bool = True,
-    upload_data: bool = True,
+    run_github_workflow: bool = False,
+    run_glue_crawler: bool = False,
+    upload_data: bool = False,
 ) -> None:
     """
     Submit Spark jobs for iasWorld data extraction and upload.
@@ -286,7 +285,6 @@ if __name__ == "__main__":
             json_string=args.json_string,
             run_github_workflow=args.run_github_workflow,
             run_glue_crawler=args.run_glue_crawler,
-            upload_logs=args.upload_logs,
             upload_data=args.upload_data,
         )
     except Exception as e:

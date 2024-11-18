@@ -18,7 +18,7 @@ contain multiple extract jobs. Once all jobs for a batch are complete, we also
 (optionally) trigger four additional processes. In order:
 
 1. Upload the extracted Parquet files to AWS S3. Uploads to the bucket and
-   prefix specified in the `.env` file.
+   prefix specified in the `SPARK_ENV` secrets file.
 2. Run an AWS Glue crawler to update table data types and/or partitions in
    the Glue data catalog (which powers Athena). This process only occurs if
    _new_ files are uploaded i.e. those not previously seen on S3.
@@ -102,7 +102,7 @@ For example, to submit the test jobs in `config/default_jobs.yaml` via
 `--json-string`, run the following command:
 
 ```bash
-docker exec spark-node-master ./submit.sh \
+docker compose exec spark-node-master ./submit.sh \
     --json-string "$(yq -o=json .test_jobs ./config/default_jobs.yaml)"
 ```
 
@@ -110,7 +110,7 @@ Or from a file:
 
 ```bash
 yq -o=json .test_jobs ./config/default_jobs.yaml > /tmp/jobs.json
-docker exec spark-node-master ./submit.sh --json-file /tmp/jobs.json
+docker compose exec spark-node-master ./submit.sh --json-file /tmp/jobs.json
 ```
 
 The command line interface also has multiple optional flags:
@@ -126,7 +126,7 @@ The command line interface also has multiple optional flags:
 - `--upload-logs/--no-upload-logs` - Upload batch logs to AWS CloudWatch?
 
 The default values for these flags are set in the `config/default_settings.yaml`
-file. The boolean flags are all `True` by default.
+file. The boolean flags are all `False` by default.
 
 ## Additional notes
 
@@ -192,7 +192,51 @@ populate the following:
 - `drivers/ojdbc8.jar` - This is the JDBC driver for our Oracle backend and
   can be found for free on [Oracle's site](https://www.oracle.com/ca-en/database/technologies/appdev/jdbc-downloads.html).
 - `secrets/` - These are credential files needed to connect to other systems.
-- `.env` - This file sets a few non-critical but still private options.
+
+## Using the development environment
+
+The Docker Compose stack we use to run Spark (via `docker compose up -d`)
+has a separate development environment that can be used to test code changes
+without disrupting the production containers. The development environment is
+configured via a dedicated
+[env-file](https://docs.docker.com/compose/how-tos/environment-variables/variable-interpolation/#env-file).
+
+To start the development environment, run:
+
+```bash
+docker compose up -d
+```
+
+To submit a job to the development environment, change the container target
+of your command from `prod` to `dev`. For example:
+
+```bash
+docker exec -it spark-node-master-dev ./submit.sh \
+    --json-string "$(yq -o=json .test_jobs ./config/default_jobs.yaml)"
+```
+
+A typical development workflow might look something like:
+
+1. Clone the repository to your own machine or home directory. Do _not_ use
+  the production `shiny-server` copy of the repository for development.
+2. Copy the secrets and drivers from the production setup to the development
+  repository. See [Files not included](#files-not-included). A simple example
+  would be: `mv $PROD_PROJECT/secrets/* $DEV_PROJECT/secrets/` followed by
+  `mv $PROD_PROJECT/drivers/* $DEV_PROJECT/drivers/`.
+3. Start the development environment using `docker compose up -d`.
+4. Make your code modifications. Changes in the `src/` directory are reflected
+  in the containers due to volume mounts (no need to rebuild).
+5. Submit a job to the development containers using `docker exec`, targeting
+  the development master node (`spark-node-master-dev`).
+6. Check the job status at `$SERVER_IP:8082`, instead of the production port
+  `$SERVER_IP:8080`.
+
+> [!WARNING]
+> The development environment shares the same targets as the production
+> environment. That means it will write to the same S3 bucket/CloudWatch log
+> group and trigger the same workflows/crawlers (though all these features are
+> disabled by default). As such, use this environment carefully. If you mess up
+> production data, you can run the production version of the code to re-fetch it.
 
 ## Scheduling
 
@@ -200,54 +244,54 @@ Batches are currently scheduled via
 [`cron`](https://man7.org/linux/man-pages/man8/cron.8.html). To edit the
 schedule file, use `crontab -e` as the main server user. The example crontab
 file below schedules daily jobs for frequently updated tables and weekly ones
-for rarely-updated tables. Note that the jobs currently _must_ be run as
-user 1003.
+for rarely-updated tables.
 
 ```bash
 # Extract recent years from frequently used tables on weekdays at 1 AM CST
-0 6 * * 1,2,3,4,5 docker exec spark-node-master ./submit.sh --json-string "$(yq -o=json .default_jobs /full/path/to/default_jobs.yaml)"
+0 6 * * 1,2,3,4,5 docker exec spark-node-master-prod ./submit.sh --json-string "$(yq -o=json .default_jobs /full/path/to/default_jobs.yaml)" --run-github-workflow --run-glue-crawler --upload-data --upload-logs
 
 # Extract all tables on Saturday at 1 AM CST
-0 6 * * 6 docker exec spark-node-master ./submit.sh --json-string "$(yq -o=json .weekend_jobs /full/path/to/default_jobs.yaml)"
+0 6 * * 6 docker exec spark-node-master-prod ./submit.sh --json-string "$(yq -o=json .weekend_jobs /full/path/to/default_jobs.yaml)" --run-github-workflow --run-glue-crawler --upload-data --upload-logs
 
 # Extract all test environment tables on Sunday at 1 AM CST
-0 6 * * 7 docker exec spark-node-master ./submit.sh --json-string "$(yq -o=json .weekend_jobs_test /full/path/to/default_jobs.yaml)" --no-run-github-workflow --extract-target test
+0 6 * * 7 docker exec spark-node-master-prod ./submit.sh --json-string "$(yq -o=json .weekend_jobs_test /full/path/to/default_jobs.yaml)" --no-run-github-workflow --run-glue-crawler --upload-data --upload-logs --extract-target test
 ```
 
 ## Structure
 
 Here's a breakdown of important files and the purpose of each one:
 
-```tree
+```bash
 .
-├── docker-compose.yaml        - Defines the Spark nodes, environment, and networking
-├── Dockerfile                 - Defines dependencies bundled in each Spark node
-├── .env                       - Runtime configuration variables passed to containers
-├── pyproject.toml             - Project metadata and tool settings
-├── README.md                  - This file!
-├── run.sh                     - Entrypoint shell script to create Spark jobs
-├── .github/                   - GitHub Actions workflows for linting, builds, etc.
+├── docker-compose.yaml        # Defines the Spark nodes, environment, and networking
+├── Dockerfile                 # Defines dependencies bundled in each Spark node
+├── .env                       # Default env file with development settings
+├── .env.prod                  # Alternative env file with production settings
+├── pyproject.toml             # Project metadata and tool settings
+├── README.md                  # This file!
+├── run.sh                     # Entrypoint shell script to create Spark jobs
+├── .github/                   # GitHub Actions workflows for linting, builds, etc.
 ├── config/
-│   ├── default_jobs.yaml      - Define batches of Spark jobs (one per table)
-│   ├── default_predicates.sql - List of mutually exclusive SQL BETWEEN expressions
-│   ├── default_settings.yaml  - Runtime defaults and schema overrides
-│   ├── spark-defaults.conf    - Spark memory and driver settings
-│   └── table_definitions.yaml - Possible job values per table and schema overrides
+│   ├── default_jobs.yaml      # Define batches of Spark jobs (one per table)
+│   ├── default_predicates.sql # List of mutually exclusive SQL BETWEEN expressions
+│   ├── default_settings.yaml  # Runtime defaults and schema overrides
+│   ├── spark-defaults.conf    # Spark memory and driver settings
+│   └── table_definitions.yaml # Possible job values per table and schema overrides
 ├── drivers/
-│   └── ojdbc8.jar             - Not included, but necessary to connect to iasWorld
+│   └── ojdbc8.jar             # Not included, but necessary to connect to iasWorld
 ├── secrets/
-│   ├── AWS_CREDENTIALS_FILE   - AWS credentials config file specific to this job
-│   ├── GH_PEM                 - GitHub PEM file used to authorize workflow dispatch
-│   └── IPTS_PASSWORD          - Password file loaded at runtime into containers
+│   ├── AWS_CREDENTIALS_FILE   # AWS credentials config file specific to this job
+│   ├── GH_PEM                 # GitHub PEM file used to authorize workflow dispatch
+│   └── IPTS_PASSWORD          # Password file loaded at runtime into containers
 ├── src/
-│   ├── submit_jobs.py         - Job submission entrypoint. Takes JSON as input
-│   ├── submit.sh              - Helper to launch jobs using spark-submit
+│   ├── submit_jobs.py         # Job submission entrypoint. Takes JSON as input
+│   ├── submit.sh              # Helper to launch jobs using spark-submit
 │   └── utils/
-│       ├── aws.py             - AWS client class for triggering Glue crawlers
-│       ├── github.py          - GitHub client class for running Actions workflows
-│       ├── helpers.py         - Miscellaneous helper functions
-│       └── spark.py           - Spark job and session classes
+│       ├── aws.py             # AWS client class for triggering Glue crawlers
+│       ├── github.py          # GitHub client class for running Actions workflows
+│       ├── helpers.py         # Miscellaneous helper functions
+│       └── spark.py           # Spark job and session classes
 └── target/
-    ├── final/                 - Landing directory after Parquet repartitioning
-    └── initial/               - Landing directory for initial JDBC read output
+    ├── final/                 # Landing directory after Parquet repartitioning
+    └── initial/               # Landing directory for initial JDBC read output
 ```

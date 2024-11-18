@@ -1,12 +1,12 @@
 x-default: &node
-  image: ${CCAO_REGISTRY_URL}/service-spark-iasworld:latest
   # Corresponds to the user set in the Dockerfile and the shiny-server
   # user on the server for proper write perms to mounted directories
-  user: 1003:0
+  user: "${UID:-1003}:0"
+  image: ghcr.io/ccao-data/service-spark-iasworld:${ENV:?}
   build:
     context: .
     dockerfile: Dockerfile
-  restart: unless-stopped
+  restart: ${SPARK_RESTART_POLICY:?}
   volumes:
     - ./drivers:/jdbc:ro
     - ./src:/tmp/src:ro
@@ -19,70 +19,52 @@ x-default: &node
     - GH_PEM
     - IPTS_PRD_PASSWORD
     - IPTS_TST_PASSWORD
+    - IPTS_CONNECTION
+    - SPARK_ENV
   networks:
     - sparknet
+
+# These environmental variables get merged into the env vars of containers.
+# See: https://docs.docker.com/reference/compose-file/extension/#example-4
+x-spark-env: &spark-env
+  SPARK_MASTER_URL: spark://spark-node-master-${ENV:?}:7077
+  SPARK_PUBLIC_DNS: ${SPARK_PUBLIC_IP:?}
+  SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED: no
+  SPARK_RPC_AUTHENTICATION_ENABLED: no
+  SPARK_RPC_ENCRYPTION_ENABLED: no
+  SPARK_SSL_ENABLED: no
+
+  AWS_SHARED_CREDENTIALS_FILE: /run/secrets/AWS_CREDENTIALS
+  IPTS_CONNECTION_FILE: /run/secrets/IPTS_CONNECTION
+  SPARK_ENV_FILE: /run/secrets/SPARK_ENV
 
 services:
   spark-node-master:
     <<: *node
-    container_name: spark-node-master
-    hostname: spark-node-master
+    container_name: spark-node-master-${ENV:?}
+    hostname: spark-node-master-${ENV:?}
     environment:
-      - SPARK_MODE=master
-
-      - AWS_SHARED_CREDENTIALS_FILE=/run/secrets/AWS_CREDENTIALS
-      - AWS_S3_BUCKET
-      - AWS_S3_PREFIX
-      - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
-      - SPARK_PUBLIC_DNS=${SPARK_PUBLIC_IP}
-      - SPARK_RPC_AUTHENTICATION_ENABLED=no
-      - SPARK_RPC_ENCRYPTION_ENABLED=no
-      - SPARK_SSL_ENABLED=no
-      - SPARK_USER=spark
-      - IPTS_PRD_SERVICE_NAME
-      - IPTS_PRD_HOSTNAME
-      - IPTS_PRD_USERNAME
-      - IPTS_PRD_PORT
-      - IPTS_TST_SERVICE_NAME
-      - IPTS_TST_HOSTNAME
-      - IPTS_TST_USERNAME
-      - IPTS_TST_PORT
-      - GH_APP_ID
+      <<: *spark-env
+      SPARK_MODE: master
+      SPARK_UI_PORT: ${SPARK_UI_PORT:?}
+      SPARK_EXECUTOR_MEMORY: ${SPARK_EXECUTOR_MEMORY:?}
+      SPARK_MASTER_WEBUI_PORT: ${SPARK_MASTER_WEBUI_PORT:?}
     ports:
-      - 4040:4040
-      - 8080:8080
+      - ${SPARK_UI_PORT:?}:${SPARK_UI_PORT:?}
+      - ${SPARK_MASTER_WEBUI_PORT:?}:${SPARK_MASTER_WEBUI_PORT:?}
 
   spark-node-worker:
     <<: *node
-    container_name: spark-node-worker
-    hostname: spark-node-worker
+    container_name: spark-node-worker-${ENV:?}
+    hostname: spark-node-worker-${ENV:?}
     environment:
-      - SPARK_MODE=worker
-      - SPARK_MASTER_URL=spark://spark-node-master:7077
-      - SPARK_WORKER_MEMORY=96G
-      - SPARK_WORKER_CORES=28
-      - SPARK_WORKER_WEBUI_PORT=9090
-
-      - AWS_SHARED_CREDENTIALS_FILE=/run/secrets/AWS_CREDENTIALS
-      - AWS_S3_BUCKET
-      - AWS_S3_PREFIX
-      - SPARK_PUBLIC_DNS=${SPARK_PUBLIC_IP}
-      - SPARK_RPC_AUTHENTICATION_ENABLED=no
-      - SPARK_RPC_ENCRYPTION_ENABLED=no
-      - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
-      - SPARK_SSL_ENABLED=no
-      - SPARK_USER=spark
-      - IPTS_PRD_SERVICE_NAME
-      - IPTS_PRD_HOSTNAME
-      - IPTS_PRD_USERNAME
-      - IPTS_PRD_PORT
-      - IPTS_TST_SERVICE_NAME
-      - IPTS_TST_HOSTNAME
-      - IPTS_TST_USERNAME
-      - IPTS_TST_PORT
-      - GH_APP_ID
+      <<: *spark-env
+      SPARK_MODE: worker
+      SPARK_WORKER_MEMORY: ${SPARK_WORKER_MEMORY:?}
+      SPARK_WORKER_CORES: ${SPARK_WORKER_CORES:?}
+      SPARK_WORKER_WEBUI_PORT: ${SPARK_WORKER_WEBUI_PORT:?}
     ports:
-      - 9090:9090
+      - ${SPARK_WORKER_WEBUI_PORT:?}:${SPARK_WORKER_WEBUI_PORT:?}
 
 # Using a dedicated subnet because the Docker default subnet conflicts
 # with some of the CCAO's internal routing
@@ -98,7 +80,11 @@ secrets:
     file: secrets/AWS_CREDENTIALS_FILE
   GH_PEM:
     file: secrets/GH_PEM
+  IPTS_CONNECTION:
+    file: secrets/IPTS_CONNECTION
   IPTS_PRD_PASSWORD:
     file: secrets/IPTS_PRD_PASSWORD
   IPTS_TST_PASSWORD:
     file: secrets/IPTS_TST_PASSWORD
+  SPARK_ENV:
+    file: secrets/SPARK_ENV
