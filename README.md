@@ -221,8 +221,8 @@ A typical development workflow might look something like:
   the production `shiny-server` copy of the repository for development.
 2. Copy the secrets and drivers from the production setup to the development
   repository. See [Files not included](#files-not-included). A simple example
-  would be: `mv $PROD_PROJECT/secrets/* $DEV_PROJECT/secrets/` followed by
-  `mv $PROD_PROJECT/drivers/* $DEV_PROJECT/drivers/`.
+  would be: `cp $PROD_PROJECT/secrets/* $DEV_PROJECT/secrets/` followed by
+  `cp $PROD_PROJECT/drivers/* $DEV_PROJECT/drivers/`.
 3. Start the development environment using `docker compose up -d`.
 4. Make your code modifications. Changes in the `src/` directory are reflected
   in the containers due to volume mounts (no need to rebuild).
