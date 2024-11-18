@@ -199,7 +199,7 @@ The Docker Compose stack we use to run Spark (via `docker compose up -d`)
 has a separate development environment that can be used to test code changes
 without disrupting the production containers. The development environment is
 configured via a dedicated
-[env-file](https://docs.docker.com/compose/how-tos/environment-variables/variable-interpolation/#additional-information-1).
+[env-file](https://docs.docker.com/compose/how-tos/environment-variables/variable-interpolation/#env-file).
 
 To start the development environment, run:
 
