@@ -82,7 +82,7 @@ services:
       SPARK_MODE: master
       SPARK_MASTER_URL: spark://spark-node-master-prod:7077
       SPARK_UI_PORT: 4040
-      SPARK_EXECUTOR_MEMORY: 96g
+      SPARK_EXECUTOR_MEMORY: 82g
       SPARK_MASTER_WEBUI_PORT: 8080
     ports:
       - 4040:4040
@@ -98,8 +98,8 @@ services:
       <<: *spark-env
       SPARK_MODE: worker
       SPARK_MASTER_URL: spark://spark-node-master-prod:7077
-      SPARK_WORKER_MEMORY: 96G
-      SPARK_WORKER_CORES: 28
+      SPARK_WORKER_MEMORY: 82G
+      SPARK_WORKER_CORES: 24
       SPARK_WORKER_WEBUI_PORT: 9090
     ports:
       - 9090:9090
