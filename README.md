@@ -206,8 +206,13 @@ used by default (with no profile specified).
 To start the development environment, run:
 
 ```bash
+# Make sure to export your UID, or else Spark may run into permission problems
+# when trying to write to files in your local directory
+export UID
+# Start the development services
 docker compose up -d
-# OR run
+# OR pass in the --profiles flag to explicitly start development services (this
+# is equivalent to the command above)
 docker compose --profile dev up -d
 ```
 

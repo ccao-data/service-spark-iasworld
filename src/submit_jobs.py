@@ -246,9 +246,8 @@ def submit_jobs(
         github = GitHubClient(gh_pem_path=PATH_GH_PEM)
         github.run_workflow(
             repository=(github.gh_api_url + "ccao-data/data-architecture"),
-            workflow="test_dbt_models.yaml",
+            workflow="test_iasworld_data.yaml",
             inputs={
-                "selector": "select_data_test_iasworld",
                 "upload_test_results": True,
             },
         )
