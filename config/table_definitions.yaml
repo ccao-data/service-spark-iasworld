@@ -105,6 +105,21 @@ tables:
     min_year: *global_min_year
     has_cur: true
     has_parid: true
+    # Override land rates that are stored as NUMBER types with no set precision
+    # or scale, meaning they default to the maximum precision and scale that
+    # Oracle supports (38 and 127, respectively). Presto performance is best up
+    # to a precision of 18, so we set precision to that high bar and truncate
+    # scale to a high but reasonable value. See Presto docs:
+    # https://prestodb.github.io/docs/current/language/types.html#fixed-precision
+    schema_overrides:
+      bdecr: DECIMAL(18,10)
+      bincr: DECIMAL(18,10)
+      brate: DECIMAL(18,10)
+      bsize: DECIMAL(18,10)
+      odecr: DECIMAL(18,10)
+      oincr: DECIMAL(18,10)
+      orate: DECIMAL(18,10)
+      osize: DECIMAL(18,10)
   legdat:
     min_year: *global_min_year
     has_cur: true
