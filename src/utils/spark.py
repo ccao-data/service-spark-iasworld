@@ -17,8 +17,6 @@ from utils.helpers import (
     strip_table_prefix,
 )
 
-logger = create_python_logger(__name__)
-
 
 class SharedSparkSession:
     """
@@ -158,6 +156,13 @@ class SparkJob:
             .resolve()
             .as_posix()
         )
+        # Define a logger on the class rather than the module so that joblib
+        # can properly serialize it during parallelization. The addition of the
+        # table name is important to avoid setting up duplicate handlers, since
+        # we expect to create once instance of this class per table
+        self.logger = create_python_logger(
+            f"{__name__}.SparkJob.{strip_table_prefix(table_name)}"
+        )
 
     def get_description(self) -> str:
         """
@@ -214,15 +219,15 @@ class SparkJob:
         partitions = self.get_partitions()
 
         # Create a block of log messages at the start of each job
-        logger.info(f"Table {self.table_name} description: {description}")
+        self.logger.info(f"Table {self.table_name} description: {description}")
         if partitions:
-            logger.info(
+            self.logger.info(
                 f"Table {self.table_name} partitions: {', '.join(partitions)}"
             )
         if filter:
-            logger.info(f"Table {self.table_name} filter: {filter}")
+            self.logger.info(f"Table {self.table_name} filter: {filter}")
         if self.schema_overrides:
-            logger.info(
+            self.logger.info(
                 (
                     f"Table {self.table_name} schema overrides: "
                     + dict_to_schema(self.schema_overrides)
@@ -293,7 +298,9 @@ class SparkJob:
 
         time_end = time.time()
         time_duration = str(timedelta(seconds=(time_end - time_start)))
-        logger.info(f"Table {self.table_name} extracted in {time_duration}")
+        self.logger.info(
+            f"Table {self.table_name} extracted in {time_duration}"
+        )
 
     def repartition(self) -> None:
         """
@@ -314,7 +321,9 @@ class SparkJob:
         time_start = time.time()
         partitions = self.get_partitions()
         parts = ", ".join(self.get_partitions()) if partitions else "None"
-        logger.info(f"Table {self.table_name} repartitioning with: {parts}")
+        self.logger.info(
+            f"Table {self.table_name} repartitioning with: {parts}"
+        )
 
         dataset = ds.dataset(
             source=self.initial_dir,
@@ -339,7 +348,7 @@ class SparkJob:
 
         time_end = time.time()
         time_duration = str(timedelta(seconds=(time_end - time_start)))
-        logger.info(
+        self.logger.info(
             f"Table {self.table_name} repartitioned in {time_duration}"
         )
 
@@ -399,7 +408,7 @@ class SparkJob:
                 Bucket=aws.s3_bucket,
                 Delete={"Objects": delete_objects},
             )
-            logger.info(
+            self.logger.info(
                 (
                     f"Table {self.table_name} deleting files: "
                     f"{', '.join(map(lambda p: p.as_posix(), s3_files_to_delete))}"
@@ -407,7 +416,7 @@ class SparkJob:
             )
 
         # List all files in the local table directory to S3
-        logger.info(
+        self.logger.info(
             f"Table {self.table_name} uploading {len(table_files)} files"
         )
         for file in table_files:
@@ -426,7 +435,9 @@ class SparkJob:
 
         time_end = time.time()
         time_duration = str(timedelta(seconds=(time_end - time_start)))
-        logger.info(f"Table {self.table_name} uploaded in {time_duration}")
+        self.logger.info(
+            f"Table {self.table_name} uploaded in {time_duration}"
+        )
 
         new_local_files = [f.as_posix() for f in list(table_files - s3_files)]
         return new_local_files
