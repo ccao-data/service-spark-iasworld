@@ -159,7 +159,7 @@ class SparkJob:
         # Define a logger on the class rather than the module so that joblib
         # can properly serialize it during parallelization. The addition of the
         # table name is important to avoid setting up duplicate handlers, since
-        # we expect to create once instance of this class per table
+        # we expect to create one instance of this class per table
         self.logger = create_python_logger(
             f"{__name__}.SparkJob.{strip_table_prefix(table_name)}"
         )
