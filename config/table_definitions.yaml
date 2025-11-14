@@ -101,6 +101,10 @@ tables:
     min_year: *global_min_year
     has_cur: true
     has_parid: true
+  htval:
+    min_year: *global_min_year
+    has_cur: true
+    has_parid: true
   land:
     min_year: *global_min_year
     has_cur: true
@@ -136,6 +140,10 @@ tables:
     min_year: null
     has_cur: false
     has_parid: false
+  maildat:
+    min_year: *global_min_year
+    has_cur: true
+    has_parid: true
   oby:
     min_year: *global_min_year
     has_cur: true

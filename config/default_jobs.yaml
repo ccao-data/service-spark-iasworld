@@ -35,11 +35,17 @@ default_jobs:
   htpar:
     table_name: iasworld.htpar
     min_year: *min_year
+  htval:
+    table_name: iasworld.htval
+    min_year: *min_year
   land:
     table_name: iasworld.land
     min_year: *min_year
   legdat:
     table_name: iasworld.legdat
+    min_year: *min_year
+  maildat:
+    table_name: iasworld.maildat
     min_year: *min_year
   oby:
     table_name: iasworld.oby
@@ -142,6 +148,8 @@ weekend_jobs:
     cur: null
   htpar:
     table_name: iasworld.htpar
+  htval:
+    table_name: iasworld.htval
   land:
     table_name: iasworld.land
   legdat:
@@ -158,6 +166,8 @@ weekend_jobs:
     max_year: null
     cur: null
     predicates_path: null
+  maildat:
+    table_name: iasworld.maildat
   oby:
     table_name: iasworld.oby
   owndat:
@@ -242,10 +252,14 @@ weekend_jobs_test:
     cur: null
   htpar:
     table_name: ias.htpar
+  htval:
+    table_name: iasworld.htval
   land:
     table_name: ias.land
   legdat:
     table_name: ias.legdat
+  maildat:
+    table_name: ias.maildat
   oby:
     table_name: ias.oby
   owndat:
