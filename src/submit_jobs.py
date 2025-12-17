@@ -57,11 +57,11 @@ def parse_args(defaults) -> argparse.Namespace:
         help="Which iasWorld environment to extract data from",
     )
     parser.add_argument(
-        "--json-file",
+        "--yaml-file",
         type=str,
         nargs="?",
         help=(
-            "Path to a JSON file containing job configuration(s). The path is "
+            "Path to a YAML file containing job configuration(s). The path is "
             "relative to the project `config/` directory."
         ),
     )
@@ -112,7 +112,7 @@ def parse_args(defaults) -> argparse.Namespace:
 def submit_jobs(
     app_name: str,
     extract_target: str,
-    json_file: str | None = None,
+    yaml_file: str | None = None,
     json_string: str | None = None,
     run_github_workflow: bool = False,
     run_glue_crawler: bool = False,
@@ -125,7 +125,7 @@ def submit_jobs(
     """
     # Get the job definition(s) from the argument JSON
     time_start = time.time()
-    job_definitions = load_job_definitions(json_file, json_string)
+    job_definitions = load_job_definitions(yaml_file, json_string)
 
     # Load table definitions and schema overrides from file
     global_schema_overrides = load_yaml(
@@ -280,7 +280,7 @@ if __name__ == "__main__":
         submit_jobs(
             app_name=app_name,
             extract_target=args.extract_target,
-            json_file=args.json_file,
+            yaml_file=args.yaml_file,
             json_string=args.json_string,
             run_github_workflow=args.run_github_workflow,
             run_glue_crawler=args.run_glue_crawler,

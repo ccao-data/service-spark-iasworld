@@ -78,38 +78,38 @@ def dict_to_schema(d: dict) -> str:
 
 
 def load_job_definitions(
-    json_file: str | None, json_string: str | None
+    yaml_file: str | None, json_string: str | None
 ) -> dict:
     """
-    Loads job definition(s) from a JSON file or a JSON string.
+    Loads job definition(s) from a JSON file or a YAML string.
 
     Args:
-        json_file: String path to a JSON file containing job configurations
+        yaml_file: String path to a YAML file containing job configurations
             in the format specified in the README. Path is relative to the
             `config/` directory.
         json_string: JSON string containing job configurations in the format
             specified in the README.
 
     Raises:
-        ValueError: If both `json_file` and `json_string` are provided, or if
+        ValueError: If both `yaml_file` and `json_string` are provided, or if
             neither is provided.
 
     Returns:
         dict: The job definition(s) loaded from the JSON file or string.
     """
-    if json_file and json_string:
+    if yaml_file and json_string:
         raise ValueError(
-            "Only one argument: --json-file or --json-string can be provided"
+            "Only one argument: --yaml-file or --json-string can be provided"
         )
-    elif json_file:
-        full_path = "/tmp/config" / Path(json_file)
+    elif yaml_file:
+        full_path = "/tmp/config" / Path(yaml_file)
         with open(full_path, "r") as file:
-            job_definitions = json.load(file)
+            job_definitions = yaml.safe_load(file)
     elif json_string:
         job_definitions = json.loads(json_string)
     else:
         raise ValueError(
-            "Either --json-file or --json-string must be provided"
+            "Either --yaml-file or --json-string must be provided"
         )
     return job_definitions
 

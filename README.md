@@ -104,7 +104,7 @@ batches:
 ### Submitting via the command line
 
 Batches are submitted to the Spark Docker cluster via the command line. The
-main job submission argument is either `--json-string` or `--json-file`.
+main job submission argument is either `--json-string` or `--yaml-file`.
 For example, to submit a job to extract all data in the `comdat` table
 starting from 2023, run the following command using `--json-string`:
 
@@ -113,11 +113,11 @@ docker exec spark-node-master-prod ./submit.sh \
     --json-string '{"comdat": {"table_name": "iasworld.comdat", "min_year": "2023"}}'
 ```
 
-Or, run the weekday jobs using `--json-file`:
+Or, run the weekday jobs using `--yaml-file`:
 
 ```bash
 docker exec spark-node-master-prod ./submit.sh \
-    --json-file ./config/default_jobs/weekday_jobs.yaml
+    --yaml-file default_jobs/weekday_jobs.yaml
 ```
 
 The command line interface also has multiple optional flags:
@@ -233,7 +233,7 @@ of your command from `prod` to `dev`. For example:
 
 ```bash
 docker exec -it spark-node-master-dev ./submit.sh \
-    --json-file ./config/default_jobs/weekday_jobs.yaml
+    --yaml-file default_jobs/weekday_jobs.yaml
 ```
 
 A typical development workflow might look something like:
@@ -269,10 +269,10 @@ for rarely-updated tables.
 
 ```bash
 # Extract recent years from frequently used tables on weekdays at 4 AM CST
-0 9 * * 1,2,3,4,5 docker exec spark-node-master-prod ./submit.sh --run-github-workflow --run-glue-crawler --upload-data --upload-logs --json-file ./config/default_jobs/weekday_jobs.yaml
+0 9 * * 1,2,3,4,5 docker exec spark-node-master-prod ./submit.sh --run-github-workflow --run-glue-crawler --upload-data --upload-logs --yaml-file default_jobs/weekday_jobs.yaml
 
 # Extract all tables on Saturday at 1 AM CST
-0 6 * * 6 docker exec spark-node-master-prod ./submit.sh --run-github-workflow --run-glue-crawler --upload-data --upload-logs --json-file ./config/default_jobs/weekend_jobs.yaml
+0 6 * * 6 docker exec spark-node-master-prod ./submit.sh --run-github-workflow --run-glue-crawler --upload-data --upload-logs --yaml-file default_jobs/weekend_jobs.yaml
 ```
 
 ## Structure
