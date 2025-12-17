@@ -1,4 +1,4 @@
-FROM bitnami/spark:3.5.1
+FROM bitnamilegacy/spark:3.5.6
 SHELL ["/bin/bash", "-euo", "pipefail", "-c"]
 
 # Switch to root user so we can install jq and yq for parsing JSON/YAML
