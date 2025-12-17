@@ -1,0 +1,76 @@
+# Jobs that run on the weekend targeting the test environment. Note
+# that the subset of tables we have access to in test is more limited
+# than in prod i.e. we only have access to the tables below
+addn:
+  table_name: ias.addn
+addrindx:
+  table_name: ias.addrindx
+aprval:
+  table_name: ias.aprval
+asmt_hist:
+  table_name: ias.asmt_hist
+cname:
+  table_name: ias.cname
+  min_year: null
+  max_year: null
+  predicates_path: null
+comnt:
+  table_name: ias.comnt
+  min_year: null
+  max_year: null
+  cur: null
+  predicates_path: null
+cvleg:
+  table_name: ias.cvleg
+  cur: null
+cvown:
+  table_name: ias.cvown
+  cur: null
+  predicates_path: null
+cvtran:
+  table_name: ias.cvtran
+  cur: null
+  predicates_path: null
+dweldat:
+  table_name: ias.dweldat
+enter:
+  table_name: ias.enter
+  min_year: null
+  max_year: null
+  cur: null
+  predicates_path: null
+exadmn:
+  table_name: ias.exadmn
+exapp:
+  table_name: ias.exapp
+exdet:
+  table_name: ias.exdet
+htdates:
+  table_name: ias.htdates
+  cur: null
+htpar:
+  table_name: ias.htpar
+htval:
+  table_name: iasworld.htval
+land:
+  table_name: ias.land
+legdat:
+  table_name: ias.legdat
+maildat:
+  table_name: ias.maildat
+oby:
+  table_name: ias.oby
+owndat:
+  table_name: ias.owndat
+pardat:
+  table_name: ias.pardat
+permit:
+  table_name: ias.permit
+  min_year: null
+  max_year: null
+  cur: null
+  predicates_path: null
+sales:
+  table_name: ias.sales
+  min_year: null
+  max_year: null

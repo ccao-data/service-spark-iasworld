@@ -1,0 +1,72 @@
+define:
+  min_year: &min_year 2023
+
+# Jobs that run daily at 1AM, typically getting the 2 most
+# recent years of data for critical tables
+addn:
+  table_name: iasworld.addn
+  min_year: *min_year
+aprval:
+  table_name: iasworld.aprval
+  min_year: *min_year
+asmt_all:
+  table_name: iasworld.asmt_all
+  min_year: *min_year
+asmt_hist:
+  table_name: iasworld.asmt_hist
+  min_year: *min_year
+comdat:
+  table_name: iasworld.comdat
+  min_year: *min_year
+cvleg:
+  table_name: iasworld.cvleg
+  min_year: *min_year
+  cur: null
+dweldat:
+  table_name: iasworld.dweldat
+  min_year: *min_year
+enter:
+  table_name: iasworld.enter
+  min_year: null
+  max_year: null
+  cur: null
+  predicates_path: null
+htpar:
+  table_name: iasworld.htpar
+  min_year: *min_year
+htval:
+  table_name: iasworld.htval
+  min_year: *min_year
+land:
+  table_name: iasworld.land
+  min_year: *min_year
+legdat:
+  table_name: iasworld.legdat
+  min_year: *min_year
+maildat:
+  table_name: iasworld.maildat
+  min_year: *min_year
+oby:
+  table_name: iasworld.oby
+  min_year: *min_year
+owndat:
+  table_name: iasworld.owndat
+  min_year: *min_year
+pardat:
+  table_name: iasworld.pardat
+  min_year: *min_year
+permit:
+  table_name: iasworld.permit
+  min_year: null
+  max_year: null
+  cur: null
+  predicates_path: null
+sales:
+  table_name: iasworld.sales
+  min_year: null
+  max_year: null
+splcom:
+  table_name: iasworld.splcom
+  min_year: *min_year
+  cur: null
+  predicates_path: null
