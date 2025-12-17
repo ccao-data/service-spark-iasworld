@@ -1,11 +1,10 @@
-define:
-  min_year: &min_year 2023
-
 # Jobs that run daily at 1AM, typically getting the 2 most
 # recent years of data for critical tables
 addn:
   table_name: iasworld.addn
-  min_year: *min_year
+  # Update this year to update the rest of the minimum years in
+  # the file
+  min_year: &min_year 2023
 aprval:
   table_name: iasworld.aprval
   min_year: *min_year

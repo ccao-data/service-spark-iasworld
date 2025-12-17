@@ -1,6 +1,3 @@
-define:
-  min_year: &min_year 2023
-
 # Jobs with a good mix of situations used for testing
 test_jobs:
   aasysjur:
@@ -11,7 +8,7 @@ test_jobs:
     predicates_path: null
   addn:
     table_name: iasworld.addn
-    min_year: *min_year
+    min_year: 2023
   addrindx:
     table_name: iasworld.addrindx
     min_year: 2011
