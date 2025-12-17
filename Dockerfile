@@ -1,4 +1,4 @@
-FROM bitnamilegacy/spark:3.5.6
+FROM bitnamilegacy/spark:3.5.1
 SHELL ["/bin/bash", "-euo", "pipefail", "-c"]
 
 # hadolint ignore=DL3002
