@@ -99,7 +99,7 @@ batches:
    a schedule, because it is resource-intensive and we rarely need its output.
 4. `test_jobs.yaml`: A test batch that pulls a subset of tables with
    representative situations that are useful for testing our Spark code.
-   We only run this batch as needed.
+   We only run this batch as needed, not on a schedule.
 
 ### Submitting via the command line
 

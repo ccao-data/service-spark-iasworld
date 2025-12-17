@@ -81,7 +81,7 @@ def load_job_definitions(
     yaml_file: str | None, json_string: str | None
 ) -> dict:
     """
-    Loads job definition(s) from a JSON file or a YAML string.
+    Loads job definition(s) from a YAML file or a JSON string.
 
     Args:
         yaml_file: String path to a YAML file containing job configurations
