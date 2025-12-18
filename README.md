@@ -87,31 +87,37 @@ corresponding table objects and modify the fields as
 [listed above](#field-definitions).
 
 In practice, modifying JSON is a bit of a pain, so we store long-lived
-batch and job definitions in YAML, then convert them to JSON using `yq`.
-The file `config/default_jobs.yaml` contains definitions for three common job
+batch and job definitions in YAML.
+The directory `config/default_jobs/` contains definitions for four common job
 batches:
 
-1. A daily batch that pulls the most recent 2 years of each critical table.
-2. A weekend batch that pulls _all_ tables and years.
-3. A test batch that pulls a subset of tables with representative situations.
+1. `weekday_jobs.yaml`: A daily batch that pulls the most recent 2 years of
+   each critical table.
+2. `weekend_jobs.yaml`: A weekend batch that pulls _all_ tables and years.
+3. `weekend_jobs_test.yaml`: A weekend batch that pulls all tables and years
+   from the test iasWorld instance. We only run this batch as needed, not on
+   a schedule, because it is resource-intensive and we rarely need its output.
+4. `test_jobs.yaml`: A test batch that pulls a subset of tables with
+   representative situations that are useful for testing our Spark code.
+   We only run this batch as needed, not on a schedule.
 
 ### Submitting via the command line
 
 Batches are submitted to the Spark Docker cluster via the command line. The
-main job submission argument is either `--json-string` or `--json-file`.
-For example, to submit the test jobs in `config/default_jobs.yaml` via
-`--json-string`, run the following command:
+main job submission argument is either `--json-string` or `--yaml-file`.
+For example, to submit a job to extract all data in the `comdat` table
+starting from 2023, run the following command using `--json-string`:
 
 ```bash
 docker exec spark-node-master-prod ./submit.sh \
-    --json-string "$(yq -o=json .test_jobs ./config/default_jobs.yaml)"
+    --json-string '{"comdat": {"table_name": "iasworld.comdat", "min_year": "2023"}}'
 ```
 
-Or from a file:
+Or, run the weekday jobs using `--yaml-file`:
 
 ```bash
-yq -o=json .test_jobs ./config/default_jobs.yaml > /tmp/jobs.json
-docker exec spark-node-master-prod ./submit.sh --json-file /tmp/jobs.json
+docker exec spark-node-master-prod ./submit.sh \
+    --yaml-file default_jobs/weekday_jobs.yaml
 ```
 
 The command line interface also has multiple optional flags:
@@ -227,7 +233,7 @@ of your command from `prod` to `dev`. For example:
 
 ```bash
 docker exec -it spark-node-master-dev ./submit.sh \
-    --json-string "$(yq -o=json .test_jobs ./config/default_jobs.yaml)"
+    --yaml-file default_jobs/weekday_jobs.yaml
 ```
 
 A typical development workflow might look something like:
@@ -262,14 +268,11 @@ file below schedules daily jobs for frequently updated tables and weekly ones
 for rarely-updated tables.
 
 ```bash
-# Extract recent years from frequently used tables on weekdays at 1 AM CST
-0 6 * * 1,2,3,4,5 docker exec spark-node-master-prod ./submit.sh --json-string "$(yq -o=json .default_jobs /full/path/to/default_jobs.yaml)" --run-github-workflow --run-glue-crawler --upload-data --upload-logs
+# Extract recent years from frequently used tables on weekdays at 4 AM CST
+0 9 * * 1,2,3,4,5 docker exec spark-node-master-prod ./submit.sh --run-github-workflow --run-glue-crawler --upload-data --upload-logs --yaml-file default_jobs/weekday_jobs.yaml
 
 # Extract all tables on Saturday at 1 AM CST
-0 6 * * 6 docker exec spark-node-master-prod ./submit.sh --json-string "$(yq -o=json .weekend_jobs /full/path/to/default_jobs.yaml)" --run-github-workflow --run-glue-crawler --upload-data --upload-logs
-
-# Extract all test environment tables on Sunday at 1 AM CST
-0 6 * * 7 docker exec spark-node-master-prod ./submit.sh --json-string "$(yq -o=json .weekend_jobs_test /full/path/to/default_jobs.yaml)" --no-run-github-workflow --run-glue-crawler --upload-data --upload-logs --extract-target test
+0 6 * * 6 docker exec spark-node-master-prod ./submit.sh --run-github-workflow --run-glue-crawler --upload-data --upload-logs --yaml-file default_jobs/weekend_jobs.yaml
 ```
 
 ## Structure
@@ -285,7 +288,7 @@ Here's a breakdown of important files and the purpose of each one:
 ├── run.sh                     # Entrypoint shell script to create Spark jobs
 ├── .github/                   # GitHub Actions workflows for linting, builds, etc.
 ├── config/
-│   ├── default_jobs.yaml      # Define batches of Spark jobs (one per table)
+│   ├── default_jobs/          # Config files defining batches of common Spark jobs
 │   ├── default_predicates.sql # List of mutually exclusive SQL BETWEEN expressions
 │   ├── default_settings.yaml  # Runtime defaults and schema overrides
 │   ├── spark-defaults.conf    # Spark memory and driver settings

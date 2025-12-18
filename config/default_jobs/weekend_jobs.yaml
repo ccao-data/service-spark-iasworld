@@ -1,0 +1,125 @@
+# Jobs that run on the weekend, fully refreshing all critical tables
+aasysjur:
+  table_name: iasworld.aasysjur
+  min_year: null
+  max_year: null
+  cur: null
+  predicates_path: null
+addn:
+  table_name: iasworld.addn
+addrindx:
+  table_name: iasworld.addrindx
+aprval:
+  table_name: iasworld.aprval
+asmt_all:
+  table_name: iasworld.asmt_all
+asmt_hist:
+  table_name: iasworld.asmt_hist
+cname:
+  table_name: iasworld.cname
+  min_year: null
+  max_year: null
+  predicates_path: null
+comdat:
+  table_name: iasworld.comdat
+comnt:
+  table_name: iasworld.comnt
+  min_year: null
+  max_year: null
+  cur: null
+  predicates_path: null
+cvleg:
+  table_name: iasworld.cvleg
+  cur: null
+cvown:
+  table_name: iasworld.cvown
+  cur: null
+  predicates_path: null
+cvtran:
+  table_name: iasworld.cvtran
+  cur: null
+  predicates_path: null
+dedit:
+  table_name: iasworld.dedit
+  min_year: null
+  max_year: null
+  cur: null
+  predicates_path: null
+dweldat:
+  table_name: iasworld.dweldat
+enter:
+  table_name: iasworld.enter
+  min_year: null
+  max_year: null
+  cur: null
+  predicates_path: null
+exadmn:
+  table_name: iasworld.exadmn
+exapp:
+  table_name: iasworld.exapp
+excode:
+  table_name: iasworld.excode
+  predicates_path: null
+exdet:
+  table_name: iasworld.exdet
+htagnt:
+  table_name: iasworld.htagnt
+  min_year: null
+  max_year: null
+  cur: null
+  predicates_path: null
+htdates:
+  table_name: iasworld.htdates
+  cur: null
+htpar:
+  table_name: iasworld.htpar
+htval:
+  table_name: iasworld.htval
+land:
+  table_name: iasworld.land
+legdat:
+  table_name: iasworld.legdat
+lpmod:
+  table_name: iasworld.lpmod
+  min_year: null
+  max_year: null
+  cur: null
+  predicates_path: null
+lpnbhd:
+  table_name: iasworld.lpnbhd
+  min_year: null
+  max_year: null
+  cur: null
+  predicates_path: null
+maildat:
+  table_name: iasworld.maildat
+oby:
+  table_name: iasworld.oby
+owndat:
+  table_name: iasworld.owndat
+pardat:
+  table_name: iasworld.pardat
+permit:
+  table_name: iasworld.permit
+  min_year: null
+  max_year: null
+  cur: null
+  predicates_path: null
+rcoby:
+  table_name: iasworld.rcoby
+  min_year: null
+  max_year: null
+  cur: null
+  predicates_path: null
+sales:
+  table_name: iasworld.sales
+  min_year: null
+  max_year: null
+splcom:
+  table_name: iasworld.splcom
+  cur: null
+  predicates_path: null
+valclass:
+  table_name: iasworld.valclass
+  cur: null
+  predicates_path: null
