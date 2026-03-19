@@ -108,7 +108,7 @@ class AWSClient:
                             "message": message.strip(),
                         }
                     )
-
+        finally:
             # Sort log events by timestamp
             log_events.sort(key=lambda event: event["timestamp"])
 
@@ -122,16 +122,17 @@ class AWSClient:
             except self.logs_client.exceptions.ResourceAlreadyExistsException:
                 pass
 
-            self.logs_client.put_log_events(
-                logGroupName=log_group_name,
-                logStreamName=log_stream_name_fmt,
-                logEvents=log_events,
-            )
-            print("Successfully uploaded log file to CloudWatch")
+            try:
+                self.logs_client.put_log_events(
+                    logGroupName=log_group_name,
+                    logStreamName=log_stream_name_fmt,
+                    logEvents=log_events,
+                )
+                print("Successfully uploaded log file to CloudWatch")
 
-            # Remove the log file after successful upload
-            os.remove(log_file_path)
-            print(f"Successfully removed log file: {log_file_path}")
+                # Remove the log file after successful upload
+                os.remove(log_file_path)
+                print(f"Successfully removed log file: {log_file_path}")
 
-        except Exception as e:
-            print(f"Failed to upload log file to CloudWatch: {e}")
+            except Exception as e:
+                print(f"Failed to upload log file to CloudWatch: {e}")
