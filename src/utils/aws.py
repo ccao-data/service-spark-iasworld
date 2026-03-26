@@ -148,7 +148,6 @@ class AWSClient:
                         }
                     )
 
-
             # Remove lines with empty messages to avoid CloudWatch upload errors
             log_events = [line for line in log_events if line.get("message")]
             # Sort log events by timestamp
