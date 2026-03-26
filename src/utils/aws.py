@@ -1,5 +1,6 @@
 import os
 import time
+import re
 from datetime import datetime
 
 import boto3
@@ -89,26 +90,65 @@ class AWSClient:
             log_stream_name: The name of the CloudWatch log stream to write to.
             log_file_path: The path to the log file to upload.
         """
+
+        TIMESTAMP_RE = re.compile(
+            r"^(\d{4}-\d{2}-\d{2}_\d{2}:\d{2}:\d{2}\.\d{6}) (.+)"
+        )
+
         try:
             with open(log_file_path, "r") as log_file:
                 log_events: list[dict[str, int | str]] = []
+                current_timestamp: int | None = None
+                current_lines: list[str] = []
+
                 for line in log_file:
-                    timestamp_str, message = line.split(" ", 1)
-                    timestamp: int = int(
-                        (
+                    line = line.rstrip("\n")
+                    match = TIMESTAMP_RE.match(line)
+                    if match:
+                        # Flush the previous event before starting a new one
+                        if current_timestamp is not None:
+                            log_events.append(
+                                {
+                                    "timestamp": current_timestamp,
+                                    "message": "\n".join(current_lines),
+                                }
+                            )
+                        current_timestamp = int(
                             datetime.strptime(
-                                timestamp_str, "%Y-%m-%d_%H:%M:%S.%f"
+                                match.group(1), "%Y-%m-%d_%H:%M:%S.%f"
                             ).timestamp()
                             * 1000
                         )
-                    )
+                        current_lines = [match.group(2).strip()]
+                    else:
+                        # No timestamp: continuation line (e.g. a traceback)
+                        if current_timestamp is not None:
+                            # Append to the current event
+                            current_lines.append(line.strip())
+                        else:
+                            # No preceding event yet -- use the current time
+                            # as a best-effort timestamp
+                            log_events.append(
+                                {
+                                    "timestamp": int(
+                                        datetime.now().timestamp() * 1000
+                                    ),
+                                    "message": line.strip(),
+                                }
+                            )
+
+                # Flush the final event
+                if current_timestamp is not None:
                     log_events.append(
                         {
-                            "timestamp": timestamp,
-                            "message": message.strip(),
+                            "timestamp": current_timestamp,
+                            "message": "\n".join(current_lines),
                         }
                     )
-        finally:
+
+
+            # Remove lines with empty messages to avoid CloudWatch upload errors
+            log_events = [line for line in log_events if line.get("message")]
             # Sort log events by timestamp
             log_events.sort(key=lambda event: event["timestamp"])
 
@@ -122,17 +162,16 @@ class AWSClient:
             except self.logs_client.exceptions.ResourceAlreadyExistsException:
                 pass
 
-            try:
-                self.logs_client.put_log_events(
-                    logGroupName=log_group_name,
-                    logStreamName=log_stream_name_fmt,
-                    logEvents=log_events,
-                )
-                print("Successfully uploaded log file to CloudWatch")
+            self.logs_client.put_log_events(
+                logGroupName=log_group_name,
+                logStreamName=log_stream_name_fmt,
+                logEvents=log_events,
+            )
+            print("Successfully uploaded log file to CloudWatch")
 
-                # Remove the log file after successful upload
-                os.remove(log_file_path)
-                print(f"Successfully removed log file: {log_file_path}")
+            # Remove the log file after successful upload
+            os.remove(log_file_path)
+            print(f"Successfully removed log file: {log_file_path}")
 
-            except Exception as e:
-                print(f"Failed to upload log file to CloudWatch: {e}")
+        except Exception as e:
+            print(f"Failed to upload log file to CloudWatch: {e}")
