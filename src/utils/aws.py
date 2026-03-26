@@ -107,7 +107,7 @@ class AWSClient:
                     line = line.rstrip("\n")
                     match = TIMESTAMP_RE.match(line)
                     if match:
-                        # Flush the previous event before starting a new one
+                        # Append the previous event before starting a new one
                         if current_timestamp is not None:
                             log_events.append(
                                 {
@@ -139,7 +139,7 @@ class AWSClient:
                                 }
                             )
 
-                # Flush the final event
+                # Append the final event
                 if current_timestamp is not None:
                     log_events.append(
                         {
@@ -148,7 +148,8 @@ class AWSClient:
                         }
                     )
 
-            # Remove lines with empty messages to avoid CloudWatch upload errors
+            # Remove any lines with empty messages to avoid CloudWatch upload
+            # errors
             log_events = [line for line in log_events if line.get("message")]
             # Sort log events by timestamp
             log_events.sort(key=lambda event: event["timestamp"])
