@@ -1,6 +1,6 @@
 import os
-import time
 import re
+import time
 from datetime import datetime
 
 import boto3
@@ -91,6 +91,8 @@ class AWSClient:
             log_file_path: The path to the log file to upload.
         """
 
+        # Declare the regex pattern for parsing timestamps at the start of log
+        # lines
         TIMESTAMP_RE = re.compile(
             r"^(\d{4}-\d{2}-\d{2}_\d{2}:\d{2}:\d{2}\.\d{6}) (.+)"
         )
