@@ -100,6 +100,11 @@ class AWSClient:
         try:
             with open(log_file_path, "r") as log_file:
                 log_events: list[dict[str, int | str]] = []
+                # Initialize state variables for tracking log lines and
+                # timestamps. We'll use these as we parse the logs in order to
+                # assign timestamps for any log lines that are missing them --
+                # in those cases, we use the most recent timestamp that
+                # precedes the log line
                 current_timestamp: int | None = None
                 current_lines: list[str] = []
 
