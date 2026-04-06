@@ -110,7 +110,7 @@ class AWSClient:
 
                 for line in log_file:
                     line = line.rstrip("\n")
-                    match = TIMESTAMP_RE.match(line)
+                    match = TIMESTAMP_RE.search(line)
                     if match:
                         # Append the previous event before starting a new one
                         if current_timestamp is not None:
@@ -120,13 +120,15 @@ class AWSClient:
                                     "message": "\n".join(current_lines),
                                 }
                             )
+
+                        current_timestamp, current_lines = line.split(" ", 1)
                         current_timestamp = int(
                             datetime.strptime(
-                                match.group(1), "%Y-%m-%d_%H:%M:%S.%f"
+                                current_timestamp, "%Y-%m-%d_%H:%M:%S.%f"
                             ).timestamp()
                             * 1000
                         )
-                        current_lines = [match.group(2).strip()]
+                        current_lines = [current_lines.strip()]
                     else:
                         # No timestamp: continuation line (e.g. a traceback)
                         if current_timestamp is not None:
