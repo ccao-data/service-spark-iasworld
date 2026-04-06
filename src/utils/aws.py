@@ -94,7 +94,7 @@ class AWSClient:
         # Declare the regex pattern for parsing timestamps at the start of log
         # lines
         TIMESTAMP_RE = re.compile(
-            r"^\d{4}-\d{2}-\d{2}_\d{2}:\d{2}:\d{2}\.\d{3}$"
+            r"^\d{4}-\d{2}-\d{2}_\d{2}:\d{2}:\d{2}\.\d{3}"
         )
 
         try:
