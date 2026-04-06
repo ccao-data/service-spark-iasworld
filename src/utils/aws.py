@@ -121,7 +121,9 @@ class AWSClient:
                                 }
                             )
 
-                        current_timestamp_str, current_lines = line.split(" ", 1)
+                        current_timestamp_str, current_lines = line.split(
+                            " ", 1
+                        )
                         current_timestamp = int(
                             datetime.strptime(
                                 current_timestamp_str, "%Y-%m-%d_%H:%M:%S.%f"
