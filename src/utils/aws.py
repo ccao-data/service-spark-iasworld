@@ -121,7 +121,7 @@ class AWSClient:
                                 }
                             )
 
-                        current_timestamp_str, current_lines = line.split(
+                        current_timestamp_str, current_lines_str = line.split(
                             " ", 1
                         )
                         current_timestamp = int(
@@ -130,7 +130,7 @@ class AWSClient:
                             ).timestamp()
                             * 1000
                         )
-                        current_lines = [current_lines.strip()]
+                        current_lines = [current_lines_str.strip()]
                     else:
                         # No timestamp: continuation line (e.g. a traceback)
                         if current_timestamp is not None:
