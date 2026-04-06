@@ -121,10 +121,10 @@ class AWSClient:
                                 }
                             )
 
-                        current_timestamp, current_lines = line.split(" ", 1)
+                        current_timestamp_str, current_lines = line.split(" ", 1)
                         current_timestamp = int(
                             datetime.strptime(
-                                current_timestamp, "%Y-%m-%d_%H:%M:%S.%f"
+                                current_timestamp_str, "%Y-%m-%d_%H:%M:%S.%f"
                             ).timestamp()
                             * 1000
                         )
