@@ -1,4 +1,5 @@
 import os
+import re
 import time
 from datetime import datetime
 
@@ -89,23 +90,70 @@ class AWSClient:
             log_stream_name: The name of the CloudWatch log stream to write to.
             log_file_path: The path to the log file to upload.
         """
+
+        # Declare the regex pattern for parsing timestamps at the start of log
+        # lines
+        TIMESTAMP_RE = re.compile(
+            r"^\d{4}-\d{2}-\d{2}_\d{2}:\d{2}:\d{2}\.\d{3}"
+        )
+
         try:
             with open(log_file_path, "r") as log_file:
                 log_events: list[dict[str, int | str]] = []
+                # Initialize state variables for tracking log lines and
+                # timestamps. We'll use these as we parse the logs in order to
+                # assign timestamps for any log lines that are missing them --
+                # in those cases, we use the most recent timestamp that
+                # precedes the log line
+                current_timestamp: int | None = None
+                current_lines: list[str] = []
+
                 for line in log_file:
-                    timestamp_str, message = line.split(" ", 1)
-                    timestamp: int = int(
-                        (
+                    line = line.rstrip("\n")
+                    match = TIMESTAMP_RE.search(line)
+                    if match:
+                        # Append the previous event before starting a new one
+                        if current_timestamp is not None:
+                            log_events.append(
+                                {
+                                    "timestamp": current_timestamp,
+                                    "message": "\n".join(current_lines),
+                                }
+                            )
+
+                        current_timestamp_str, current_lines_str = line.split(
+                            " ", 1
+                        )
+                        current_timestamp = int(
                             datetime.strptime(
-                                timestamp_str, "%Y-%m-%d_%H:%M:%S.%f"
+                                current_timestamp_str, "%Y-%m-%d_%H:%M:%S.%f"
                             ).timestamp()
                             * 1000
                         )
-                    )
+                        current_lines = [current_lines_str.strip()]
+                    else:
+                        # No timestamp: continuation line (e.g. a traceback)
+                        if current_timestamp is not None:
+                            # Append to the current event
+                            current_lines.append(line.strip())
+                        else:
+                            # No preceding event yet -- use the current time
+                            # as a best-effort timestamp
+                            log_events.append(
+                                {
+                                    "timestamp": int(
+                                        datetime.now().timestamp() * 1000
+                                    ),
+                                    "message": line.strip(),
+                                }
+                            )
+
+                # Append the final event
+                if current_timestamp is not None:
                     log_events.append(
                         {
-                            "timestamp": timestamp,
-                            "message": message.strip(),
+                            "timestamp": current_timestamp,
+                            "message": "\n".join(current_lines),
                         }
                     )
 
