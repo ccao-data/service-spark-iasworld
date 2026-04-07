@@ -213,7 +213,9 @@ To start the development environment, run:
 
 ```bash
 # Make sure to export your UID, or else Spark may run into permission problems
-# when trying to write to files in your local directory
+# when trying to write to files in your local directory. You may need to run
+# this command again after bringing the development environment down and before
+# bringing it back up.
 export UID
 # Start the development services
 docker compose up -d
