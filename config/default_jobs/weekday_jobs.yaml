@@ -4,7 +4,7 @@ addn:
   table_name: iasworld.addn
   # Update this year to update the rest of the minimum years in
   # the file
-  min_year: &min_year 2023
+  min_year: &min_year 2025
 aprval:
   table_name: iasworld.aprval
   min_year: *min_year
