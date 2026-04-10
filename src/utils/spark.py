@@ -411,7 +411,7 @@ class SparkJob:
             self.logger.info(
                 (
                     f"Table {self.table_name} deleting files: "
-                    f"{', '.join(map(lambda p: p.as_posix(), s3_files_to_delete))}"
+                    f"{', '.join(p.as_posix() for p in s3_files_to_delete)}"
                 )
             )
 
