@@ -44,6 +44,13 @@ PATH_TABLE_DEFINITIONS = "/tmp/config/table_definitions.yaml"
 # parallelism happens within each job
 NUM_PARALLEL_JOBS = 4
 
+# CloudWatch log group to upload logs to, set per environment in
+# docker-compose.yaml. Defaults to the dev log group so that logs from
+# environments missing this variable can never trip production alarms
+CLOUDWATCH_LOG_GROUP_NAME = os.getenv(
+    "CLOUDWATCH_LOG_GROUP_NAME", "/ccao/jobs/spark_dev"
+)
+
 
 def parse_args(defaults) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
@@ -292,7 +299,7 @@ if __name__ == "__main__":
     if args.upload_logs:
         aws = AWSClient()
         aws.upload_logs_to_cloudwatch(
-            log_group_name="/ccao/jobs/spark",
+            log_group_name=CLOUDWATCH_LOG_GROUP_NAME,
             log_stream_name=app_name,
             log_file_path=PATH_SPARK_LOG,
         )
