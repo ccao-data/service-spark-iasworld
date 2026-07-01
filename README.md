@@ -261,7 +261,7 @@ A typical development workflow might look something like:
 > As such, use this environment carefully. If you mess up production data, you
 > can run the production version of the code to re-fetch it. The exception is
 > CloudWatch logs: the development environment uploads logs to a dedicated log
-> group (`/ccao/jobs/spark_dev`), set via the `CLOUDWATCH_LOG_GROUP_NAME`
+> group (`/ccao/jobs/spark-dev`), set via the `CLOUDWATCH_LOG_GROUP_NAME`
 > environment variable in `docker-compose.yaml`, so that development runs
 > don't trip production alarms.
 

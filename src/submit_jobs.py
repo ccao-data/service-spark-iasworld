@@ -47,7 +47,7 @@ NUM_PARALLEL_JOBS = 4
 # CloudWatch log group to upload logs to, set per environment in
 # docker-compose.yaml. Defaults to the dev log group
 CLOUDWATCH_LOG_GROUP_NAME = os.getenv(
-    "CLOUDWATCH_LOG_GROUP_NAME", "/ccao/jobs/spark_dev"
+    "CLOUDWATCH_LOG_GROUP_NAME", "/ccao/jobs/spark-dev"
 )
 
 

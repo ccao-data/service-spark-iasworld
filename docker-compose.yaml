@@ -50,7 +50,7 @@ services:
       SPARK_UI_PORT: 4041
       SPARK_EXECUTOR_MEMORY: 32g
       SPARK_MASTER_WEBUI_PORT: 8082
-      CLOUDWATCH_LOG_GROUP_NAME: /ccao/jobs/spark_dev
+      CLOUDWATCH_LOG_GROUP_NAME: /ccao/jobs/spark-dev
     ports:
       - 4041:4041
       - 8082:8082
