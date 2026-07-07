@@ -263,7 +263,7 @@ A typical development workflow might look something like:
 > CloudWatch logs: the development environment uploads logs to a dedicated log
 > group (`/ccao/jobs/spark-dev`), set via the `CLOUDWATCH_LOG_GROUP_NAME`
 > environment variable in `docker-compose.yaml`, so that development runs
-> don't write to the production logs.
+> and production runs have clearly separated log destinations.
 
 ## Scheduling
 
