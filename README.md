@@ -255,11 +255,15 @@ A typical development workflow might look something like:
   `$SERVER_IP:8080`.
 
 > [!WARNING]
-> The development environment shares the same targets as the production
-> environment. That means it will write to the same S3 bucket/CloudWatch log
-> group and trigger the same workflows/crawlers (though all these features are
-> disabled by default). As such, use this environment carefully. If you mess up
-> production data, you can run the production version of the code to re-fetch it.
+> The development environment shares most of the same targets as the production
+> environment. That means it will write to the same S3 bucket and trigger the
+> same workflows/crawlers (though all these features are disabled by default).
+> As such, use this environment carefully. If you mess up production data, you
+> can run the production version of the code to re-fetch it. The exception is
+> CloudWatch logs: the development environment uploads logs to a dedicated log
+> group (`/ccao/jobs/spark-dev`), set via the `CLOUDWATCH_LOG_GROUP_NAME`
+> environment variable in `docker-compose.yaml`, so that development runs
+> and production runs have clearly separated log destinations.
 
 ## Scheduling
 
