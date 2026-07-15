@@ -2,7 +2,6 @@
 # flag at runtime
 default_args:
   extract_target: "prod"
-  run_github_workflow: False
   run_glue_crawler: False
   upload_logs: False
   upload_data: False

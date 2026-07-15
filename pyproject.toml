@@ -15,11 +15,9 @@ requires-python = ">=3.9"
 dependencies = [
   "boto3~=1.42.11",
   "joblib~=1.5.3",
-  "jwt~=1.4.0",
   "py4j~=0.10.9.9",
   "pyarrow~=22.0.0",
   "pyyaml~=6.0.3",
-  "requests~=2.32.5"
 ]
 
 [tool.ruff]
