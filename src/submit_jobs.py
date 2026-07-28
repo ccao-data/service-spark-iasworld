@@ -6,7 +6,6 @@ from datetime import datetime, timedelta
 from joblib import Parallel, delayed
 
 from utils.aws import AWSClient
-from utils.github import GitHubClient
 from utils.helpers import (
     PATH_SPARK_LOG,
     clear_directory,
@@ -35,7 +34,6 @@ DEFAULT_VAR_PREDICATES_PATH = "default_predicates.sql"
 # Constants for paths inside the Spark container
 PATH_INITIAL_DIR = "/tmp/target/initial"
 PATH_FINAL_DIR = "/tmp/target/final"
-PATH_GH_PEM = "/run/secrets/GH_PEM"
 PATH_DEFAULT_SETTINGS = "/tmp/config/default_settings.yaml"
 PATH_TABLE_DEFINITIONS = "/tmp/config/table_definitions.yaml"
 
@@ -78,13 +76,6 @@ def parse_args(defaults) -> argparse.Namespace:
         help="JSON string containing job configurations(s).",
     )
     parser.add_argument(
-        "--run-github-workflow",
-        action=argparse.BooleanOptionalAction,
-        required=False,
-        default=defaults.get("run_github_workflow", False),
-        help="Run GitHub Actions workflow to run dbt tests. Defaults to False.",
-    )
-    parser.add_argument(
         "--run-glue-crawler",
         action=argparse.BooleanOptionalAction,
         required=False,
@@ -120,7 +111,6 @@ def submit_jobs(
     extract_target: str,
     yaml_file: str | None = None,
     json_string: str | None = None,
-    run_github_workflow: bool = False,
     run_glue_crawler: bool = False,
     upload_data: bool = False,
 ) -> None:
@@ -246,18 +236,6 @@ def submit_jobs(
             crawler_name = "ccao-data-warehouse-iasworld_test-crawler"
         aws.run_and_wait_for_crawler(crawler_name)
 
-    # Trigger a GitHub workflow to run dbt tests once all jobs are complete
-    if run_github_workflow:
-        logger.info("All file uploads complete, triggering dbt tests")
-        github = GitHubClient(gh_pem_path=PATH_GH_PEM)
-        github.run_workflow(
-            repository=(github.gh_api_url + "ccao-data/data-architecture"),
-            workflow="test_iasworld_data.yaml",
-            inputs={
-                "upload_test_results": True,
-            },
-        )
-
     # Print table names and descriptions for extracted tables
     logger.info(f"Extracted tables: {', '.join(table_names)}")
     logger.info("Extracted tables using the following settings:")
@@ -288,7 +266,6 @@ if __name__ == "__main__":
             extract_target=args.extract_target,
             yaml_file=args.yaml_file,
             json_string=args.json_string,
-            run_github_workflow=args.run_github_workflow,
             run_glue_crawler=args.run_glue_crawler,
             upload_data=args.upload_data,
         )

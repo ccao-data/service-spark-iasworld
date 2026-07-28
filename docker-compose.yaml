@@ -14,7 +14,6 @@ x-default: &node
     - ./logs:/tmp/logs:rw
   secrets:
     - AWS_CREDENTIALS
-    - GH_PEM
     - IPTS_PRD_PASSWORD
     - IPTS_TST_PASSWORD
     - IPTS_CONNECTION
@@ -118,8 +117,6 @@ networks:
 secrets:
   AWS_CREDENTIALS:
     file: secrets/AWS_CREDENTIALS_FILE
-  GH_PEM:
-    file: secrets/GH_PEM
   IPTS_CONNECTION:
     file: secrets/IPTS_CONNECTION
   IPTS_PRD_PASSWORD:

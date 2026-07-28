@@ -22,10 +22,7 @@ contain multiple extract jobs. Once all jobs for a batch are complete, we also
 2. Run an AWS Glue crawler to update table data types and/or partitions in
    the Glue data catalog (which powers Athena). This process only occurs if
    _new_ files are uploaded i.e. those not previously seen on S3.
-3. Run a [dbt testing workflow](https://github.com/ccao-data/data-architecture/blob/master/.github/workflows/test_dbt_models.yaml)
-   on GitHub Actions. This automatically tests the iasWorld data for issues and
-   outputs the results to various tables and reports.
-4. Upload the final logs to AWS CloudWatch.
+3. Upload the final logs to AWS CloudWatch.
 
 ## Submitting job batches
 
@@ -124,8 +121,6 @@ The command line interface also has multiple optional flags:
 
 - `--extract-target` - iasWorld target environment to extract data from. Must
   be one of `prod` or `test`. Defaults to `prod`.
-- `--run-github-workflow/--no-run-github-workflow` - Run the [`test_dbt_models`](https://github.com/ccao-data/data-architecture/blob/master/.github/workflows/test_dbt_models.yaml)
-  workflow on batch completion?
 - `--run-glue-crawler/--no-run-glue-crawler` - Run the iasWorld Glue crawler
   on batch completion?
 - `--upload-data/--no-upload-data` - Upload extracted data to the iasWorld S3
@@ -257,7 +252,7 @@ A typical development workflow might look something like:
 > [!WARNING]
 > The development environment shares most of the same targets as the production
 > environment. That means it will write to the same S3 bucket and trigger the
-> same workflows/crawlers (though all these features are disabled by default).
+> same crawlers (though all these features are disabled by default).
 > As such, use this environment carefully. If you mess up production data, you
 > can run the production version of the code to re-fetch it. The exception is
 > CloudWatch logs: the development environment uploads logs to a dedicated log
@@ -275,10 +270,10 @@ for rarely-updated tables.
 
 ```bash
 # Extract recent years from frequently used tables on weekdays at 4 AM CST
-0 9 * * 1,2,3,4,5 docker exec spark-node-master-prod ./submit.sh --run-github-workflow --run-glue-crawler --upload-data --upload-logs --yaml-file default_jobs/weekday_jobs.yaml
+0 9 * * 1,2,3,4,5 docker exec spark-node-master-prod ./submit.sh --run-glue-crawler --upload-data --upload-logs --yaml-file default_jobs/weekday_jobs.yaml
 
 # Extract all tables on Saturday at 1 AM CST
-0 6 * * 6 docker exec spark-node-master-prod ./submit.sh --run-github-workflow --run-glue-crawler --upload-data --upload-logs --yaml-file default_jobs/weekend_jobs.yaml
+0 6 * * 6 docker exec spark-node-master-prod ./submit.sh --run-glue-crawler --upload-data --upload-logs --yaml-file default_jobs/weekend_jobs.yaml
 ```
 
 ## Structure
@@ -303,14 +298,12 @@ Here's a breakdown of important files and the purpose of each one:
 │   └── ojdbc8.jar             # Not included, but necessary to connect to iasWorld
 ├── secrets/
 │   ├── AWS_CREDENTIALS_FILE   # AWS credentials config file specific to this job
-│   ├── GH_PEM                 # GitHub PEM file used to authorize workflow dispatch
 │   └── IPTS_PASSWORD          # Password file loaded at runtime into containers
 ├── src/
 │   ├── submit_jobs.py         # Job submission entrypoint. Takes JSON as input
 │   ├── submit.sh              # Helper to launch jobs using spark-submit
 │   └── utils/
 │       ├── aws.py             # AWS client class for triggering Glue crawlers
-│       ├── github.py          # GitHub client class for running Actions workflows
 │       ├── helpers.py         # Miscellaneous helper functions
 │       └── spark.py           # Spark job and session classes
 └── target/
