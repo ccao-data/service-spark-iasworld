@@ -5,7 +5,8 @@ SHELL ["/bin/bash", "-euo", "pipefail", "-c"]
 # Update the OS CA bundle, then rebuild the JDK truststore from it, since
 # Bitnami's JDK ships its own. We need to use `p11-kit` to do this because
 # `ca-certificates-java` assumes a JDK install from apt, which is not how the
-# base image installs JDK
+# base image installs JDK. We also need to temporarily switch from Bitnami's
+# recommended user (1001) to the root user in order to install system packages.
 USER root
 RUN apt-get update && \
     apt-get install -y --no-install-recommends ca-certificates p11-kit && \
@@ -14,7 +15,9 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 USER 1001
 
-# Make pip use the OS CA bundle instead of its vendored copy
+# Make pip use the OS CA bundle instead of its vendored copy. While newer
+# versions of the Ubuntu Python package fall back to system certs, the base
+# image vendors its own Python version, so it requires an env var override
 ENV PIP_CERT=/etc/ssl/certs/ca-certificates.crt
 
 RUN mkdir -p /tmp/python
