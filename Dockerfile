@@ -14,9 +14,8 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 USER 1001
 
-# Make pip and boto3 use the OS CA bundle instead of their vendored copies
-ENV PIP_CERT=/etc/ssl/certs/ca-certificates.crt \
-    AWS_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt
+# Make pip use the OS CA bundle instead of its vendored copy
+ENV PIP_CERT=/etc/ssl/certs/ca-certificates.crt
 
 RUN mkdir -p /tmp/python
 COPY pyproject.toml /tmp/python
