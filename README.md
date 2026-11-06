@@ -284,6 +284,7 @@ Here's a breakdown of important files and the purpose of each one:
 .
 ├── docker-compose.yaml        # Defines the Spark nodes, environment, and networking
 ├── Dockerfile                 # Defines dependencies bundled in each Spark node
+├── entrypoint.sh              # Container entrypoint that sets up the host user
 ├── pyproject.toml             # Project metadata and tool settings
 ├── README.md                  # This file!
 ├── run.sh                     # Entrypoint shell script to create Spark jobs

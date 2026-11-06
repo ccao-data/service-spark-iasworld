@@ -9,7 +9,7 @@ x-default: &node
     - ./drivers:/jdbc:ro
     - ./src:/tmp/src:ro
     - ./config:/tmp/config:ro
-    - ./config/spark-defaults.conf:/opt/bitnami/spark/conf/spark-defaults.conf:ro
+    - ./config/spark-defaults.conf:/opt/spark/conf/spark-defaults.conf:ro
     - ./target:/tmp/target:rw
     - ./logs:/tmp/logs:rw
   secrets:
@@ -21,14 +21,19 @@ x-default: &node
   networks:
     - sparknet
 
+# Commands to start each node type (master and worker).
+# Workers read their memory, cores, and UI port from the `SPARK_WORKER_*`
+# env vars
+x-master-command: &master-command
+  ["spark-class", "org.apache.spark.deploy.master.Master"]
+x-worker-command: &worker-command
+  ["bash", "-c",
+   "exec spark-class org.apache.spark.deploy.worker.Worker \"$$SPARK_MASTER_URL\""]
+
 # These environmental variables get merged into the env vars of containers.
 # See: https://docs.docker.com/reference/compose-file/extension/#example-4
 x-spark-env: &spark-env
   SPARK_PUBLIC_DNS: 10.129.122.29
-  SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED: no
-  SPARK_RPC_AUTHENTICATION_ENABLED: no
-  SPARK_RPC_ENCRYPTION_ENABLED: no
-  SPARK_SSL_ENABLED: no
 
   AWS_SHARED_CREDENTIALS_FILE: /run/secrets/AWS_CREDENTIALS
   IPTS_CONNECTION_FILE: /run/secrets/IPTS_CONNECTION
@@ -42,9 +47,9 @@ services:
     container_name: spark-node-master-dev
     hostname: spark-node-master-dev
     restart: no
+    command: *master-command
     environment:
       <<: *spark-env
-      SPARK_MODE: master
       SPARK_MASTER_URL: spark://spark-node-master-dev:7077
       SPARK_UI_PORT: 4041
       SPARK_EXECUTOR_MEMORY: 32g
@@ -60,9 +65,9 @@ services:
     image: ghcr.io/ccao-data/service-spark-iasworld:dev
     container_name: spark-node-worker-dev
     restart: no
+    command: *worker-command
     environment:
       <<: *spark-env
-      SPARK_MODE: worker
       SPARK_MASTER_URL: spark://spark-node-master-dev:7077
       SPARK_WORKER_MEMORY: 32g
       SPARK_WORKER_CORES: 16
@@ -77,9 +82,9 @@ services:
     container_name: spark-node-master-prod
     hostname: spark-node-master-prod
     restart: unless-stopped
+    command: *master-command
     environment:
       <<: *spark-env
-      SPARK_MODE: master
       SPARK_MASTER_URL: spark://spark-node-master-prod:7077
       SPARK_UI_PORT: 4040
       SPARK_EXECUTOR_MEMORY: 82g
@@ -95,9 +100,9 @@ services:
     image: ghcr.io/ccao-data/service-spark-iasworld:latest
     container_name: spark-node-worker-prod
     restart: unless-stopped
+    command: *worker-command
     environment:
       <<: *spark-env
-      SPARK_MODE: worker
       SPARK_MASTER_URL: spark://spark-node-master-prod:7077
       SPARK_WORKER_MEMORY: 82G
       SPARK_WORKER_CORES: 24
