@@ -230,11 +230,19 @@ def submit_jobs(
                 "to S3, triggering Glue crawler"
             )
         )
+        # Crawlers are set per environment in docker-compose.yaml. Not every
+        # environment has a crawler for every extract target
         if extract_target == "prod":
-            crawler_name = "ccao-data-warehouse-iasworld-crawler"
+            crawler_name = os.getenv("GLUE_CRAWLER_PROD_TARGET")
         else:
-            crawler_name = "ccao-data-warehouse-iasworld_test-crawler"
-        aws.run_and_wait_for_crawler(crawler_name)
+            crawler_name = os.getenv("GLUE_CRAWLER_TEST_TARGET")
+
+        if crawler_name:
+            aws.run_and_wait_for_crawler(crawler_name)
+        else:
+            logger.warning(
+                f"No Glue crawler set for {extract_target}; skipping"
+            )
 
     # Print table names and descriptions for extracted tables
     logger.info(f"Extracted tables: {', '.join(table_names)}")

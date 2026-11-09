@@ -17,7 +17,8 @@ Jobs are submitted in "batches" (called applications by Spark). Each batch may
 contain multiple extract jobs. Once all jobs for a batch are complete, we also
 (optionally) trigger four additional processes. In order:
 
-1. Upload the extracted Parquet files to AWS S3. Uploads to the bucket and
+1. Upload the extracted Parquet files to AWS S3. Uploads to the bucket set by
+   the `AWS_S3_BUCKET` environment variable in `docker-compose.yaml` and the
    prefix specified in the `SPARK_ENV` secrets file.
 2. Run an AWS Glue crawler to update table data types and/or partitions in
    the Glue data catalog (which powers Athena). This process only occurs if
@@ -250,15 +251,15 @@ A typical development workflow might look something like:
   `$SERVER_IP:8080`.
 
 > [!WARNING]
-> The development environment shares most of the same targets as the production
-> environment. That means it will write to the same S3 bucket and trigger the
-> same crawlers (though all these features are disabled by default).
-> As such, use this environment carefully. If you mess up production data, you
-> can run the production version of the code to re-fetch it. The exception is
-> CloudWatch logs: the development environment uploads logs to a dedicated log
-> group (`/ccao/jobs/spark-dev`), set via the `CLOUDWATCH_LOG_GROUP_NAME`
-> environment variable in `docker-compose.yaml`, so that development runs
-> and production runs have clearly separated log destinations.
+> The development environment uses its own destinations, set via environment
+> variables in `docker-compose.yaml`: a dedicated S3 bucket
+> (`z-dev-ccao-data-warehouse-us-east-1`), Glue crawler
+> (`z-dev-ccao-data-warehouse-iasworld-crawler`), and CloudWatch log group
+> (`/ccao/jobs/spark-dev`). There is no development crawler for the `test`
+> extract target, so development runs against that target skip the crawl.
+> Don't set `AWS_S3_BUCKET` in your `SPARK_ENV` secrets file: `submit.sh` sources
+> that file, so a value set there overrides `docker-compose.yaml` and could send
+> development data to the production bucket.
 
 ## Scheduling
 
