@@ -257,9 +257,11 @@ A typical development workflow might look something like:
 > (`z-dev-ccao-data-warehouse-iasworld-crawler`), and CloudWatch log group
 > (`/ccao/jobs/spark-dev`). There is no development crawler for the `test`
 > extract target, so development runs against that target skip the crawl.
-> Don't set `AWS_S3_BUCKET` in your `SPARK_ENV` secrets file: `submit.sh` sources
-> that file, so a value set there overrides `docker-compose.yaml` and could send
-> development data to the production bucket.
+>
+> If your `SPARK_ENV` secrets file has an `AWS_S3_BUCKET` line (older setups
+> did, and copying secrets from production may bring it along), remove it.
+> `submit.sh` loads that file after `docker-compose.yaml`, so the line would
+> send development data to the production bucket.
 
 ## Scheduling
 
