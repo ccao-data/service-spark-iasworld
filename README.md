@@ -256,7 +256,8 @@ A typical development workflow might look something like:
 > (`z-dev-ccao-data-warehouse-us-east-1`), Glue crawler
 > (`z-dev-ccao-data-warehouse-iasworld-crawler`), and CloudWatch log group
 > (`/ccao/jobs/spark-dev`). There is no development crawler for the `test`
-> extract target, so development runs against that target skip the crawl.
+> extract target, so development runs against that target with
+> `--run-glue-crawler` will fail at startup.
 >
 > If your `SPARK_ENV` secrets file has an `AWS_S3_BUCKET` line (older setups
 > did, and copying secrets from production may bring it along), remove it.
