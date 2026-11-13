@@ -314,7 +314,7 @@ ssh-add ~/.ssh/<your_private_key_file>
   `docker compose --profile prod up -d`
 * Watch the service logs with `docker compose --profile prod logs -f` and wait
   until they print log lines confirming that the services are running
-  press `ctrl+c` to stop tailing the logs when you're done)
+  (press `ctrl+c` to stop tailing the logs when you're done)
 * Attempt to load the Spark console in a web browser via port 8080 on the server
   IP to double-check that the services are running
 
