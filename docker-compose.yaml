@@ -50,6 +50,8 @@ services:
       SPARK_EXECUTOR_MEMORY: 32g
       SPARK_MASTER_WEBUI_PORT: 8082
       CLOUDWATCH_LOG_GROUP_NAME: /ccao/jobs/spark-dev
+      AWS_S3_BUCKET: z-dev-ccao-data-warehouse-us-east-1
+      GLUE_CRAWLER_PROD_TARGET: z-dev-ccao-data-warehouse-iasworld-crawler
     ports:
       - 4041:4041
       - 8082:8082
@@ -85,6 +87,9 @@ services:
       SPARK_EXECUTOR_MEMORY: 60g
       SPARK_MASTER_WEBUI_PORT: 8080
       CLOUDWATCH_LOG_GROUP_NAME: /ccao/jobs/spark
+      AWS_S3_BUCKET: ccao-data-warehouse-us-east-1
+      GLUE_CRAWLER_PROD_TARGET: ccao-data-warehouse-iasworld-crawler
+      GLUE_CRAWLER_TEST_TARGET: ccao-data-warehouse-iasworld_test-crawler
     ports:
       - 4040:4040
       - 8080:8080

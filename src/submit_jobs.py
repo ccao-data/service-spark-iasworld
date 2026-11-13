@@ -119,6 +119,21 @@ def submit_jobs(
 
     See the `parse_args` function for available command-line arguments.
     """
+    # Crawlers are set per environment in docker-compose.yaml. Not every
+    # environment has a crawler for every extract target, so check for one
+    # before starting any extraction
+    crawler_env_var = (
+        "GLUE_CRAWLER_PROD_TARGET"
+        if extract_target == "prod"
+        else "GLUE_CRAWLER_TEST_TARGET"
+    )
+    crawler_name = os.getenv(crawler_env_var)
+    if run_glue_crawler and not crawler_name:
+        raise ValueError(
+            f"Glue crawler requested for extract target '{extract_target}', "
+            f"but {crawler_env_var} is not set in this environment"
+        )
+
     # Get the job definition(s) from the argument JSON
     time_start = time.time()
     job_definitions = load_job_definitions(yaml_file, json_string)
@@ -230,10 +245,6 @@ def submit_jobs(
                 "to S3, triggering Glue crawler"
             )
         )
-        if extract_target == "prod":
-            crawler_name = "ccao-data-warehouse-iasworld-crawler"
-        else:
-            crawler_name = "ccao-data-warehouse-iasworld_test-crawler"
         aws.run_and_wait_for_crawler(crawler_name)
 
     # Print table names and descriptions for extracted tables
