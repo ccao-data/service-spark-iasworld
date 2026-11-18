@@ -280,6 +280,44 @@ for rarely-updated tables.
 0 6 * * 6 docker exec spark-node-master-prod ./submit.sh --run-glue-crawler --upload-data --upload-logs --yaml-file default_jobs/weekend_jobs.yaml
 ```
 
+## Deploying code changes
+
+Follow these steps to deploy new code changes to the production environment:
+
+* Merge your PR to the main branch
+* If your PR made changes to `Dockerfile`, wait for the [`build-docker`
+  workflow](https://github.com/ccao-data/service-spark-iasworld/actions/workflows/build-docker.yaml)
+  to complete execution on the main branch, so that it pushes the most recent
+  Docker image to the GitHub Docker registry
+* Make sure you have [SSH agent
+  forwarding](https://docs.github.com/en/authentication/connecting-to-github-with-ssh/using-ssh-agent-forwarding)
+  configured on WSL with the server set as the host, then run the following
+  commands to start the agent and add your key (replace
+  `<your_private_key_file>` with the filename for your SSH private key):
+
+```bash
+eval $(ssh-agent)
+ssh-add ~/.ssh/<your_private_key_file>
+```
+
+* SSH into the server as the Shiny user and navigate to the prod directory
+* Confirm that the prod directory is on the main branch by running `git status`
+* Pull the latest code changes from the main branch by running
+  `git pull origin master`
+* If your PR made changes to `Dockerfile`, pull the latest Docker image that the
+  `docker-build` workflow built by running
+  `docker pull ghcr.io/ccao-data/service-spark-iasworld`
+* If your PR made any changes to the structure or contents of the config files
+  in `secrets/`, implement those changes in the prod `secrets/` files
+* Stop the running services by running `docker compose --profile prod down`
+* Restart the services using the new image by running
+  `docker compose --profile prod up -d`
+* Watch the service logs with `docker compose --profile prod logs -f` and wait
+  until they print log lines confirming that the services are running
+  (press `ctrl+c` to stop tailing the logs when you're done)
+* Attempt to load the Spark console in a web browser via port 8080 on the server
+  IP to double-check that the services are running
+
 ## Structure
 
 Here's a breakdown of important files and the purpose of each one:
