@@ -9,7 +9,7 @@ x-default: &node
     - ./drivers:/jdbc:ro
     - ./src:/tmp/src:ro
     - ./config:/tmp/config:ro
-    - ./config/spark-defaults.conf:/opt/bitnami/spark/conf/spark-defaults.conf:ro
+    - ./config/spark-defaults.conf:/opt/spark/conf/spark-defaults.conf:ro
     - ./target:/tmp/target:rw
     - ./logs:/tmp/logs:rw
   secrets:
@@ -21,14 +21,45 @@ x-default: &node
   networks:
     - sparknet
 
+# Commands to start each node type (master and worker).
+#
+# We want to start Spark using the standalone mode, documented here:
+# https://spark.apache.org/docs/3.5.9/spark-standalone.html
+# However, we don't want to use the recommended `start-*.sh` scripts because
+# those scripts start Spark as a daemon process and so are not a good fit for
+# containerized services. Instead, we use the `spark-class` command to start
+# the Spark processes directly, which is what the `start-*.sh` scripts do under
+# the hood.
+#
+# See this StackOverflow answer for documentation of this approach:
+# https://stackoverflow.com/a/39671404
+#
+# We use exec form (a list of arguments) so that Spark runs as PID 1 and
+# receives signals like SIGTERM from `docker stop` directly.
+x-master-command: &master-command
+  ["spark-class", "org.apache.spark.deploy.master.Master"]
+
+# Pass the worker command to Docker wrapped in a `bash -c exec` call. This is
+# important because the worker needs to expand the `SPARK_MASTER_URL` env var at
+# runtime, but Docker can't expand variables at runtime when a command is
+# specified using exec form. To work around this limitation, we run the command
+# in a shell (`bash -c`) to expand the env var, and then we replace the shell
+# with the command using `exec` so that it runs as PID 1 and receives SIGTERM.
+# See these docs for more info about variable substitution in exec form:
+# https://docs.docker.com/reference/dockerfile/#variable-substitution
+#
+# We use an extra dollar sign when referencing the `SPARK_MASTER_URL` env var
+# in order to prevent the Compose file from interpolating the variable from the
+# host environment at parse time. See:
+# https://docs.docker.com/reference/compose-file/interpolation/
+x-worker-command: &worker-command
+  ["bash", "-c",
+   "exec spark-class org.apache.spark.deploy.worker.Worker \"$$SPARK_MASTER_URL\""]
+
 # These environmental variables get merged into the env vars of containers.
 # See: https://docs.docker.com/reference/compose-file/extension/#example-4
 x-spark-env: &spark-env
   SPARK_PUBLIC_DNS: 10.129.122.29
-  SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED: no
-  SPARK_RPC_AUTHENTICATION_ENABLED: no
-  SPARK_RPC_ENCRYPTION_ENABLED: no
-  SPARK_SSL_ENABLED: no
 
   AWS_SHARED_CREDENTIALS_FILE: /run/secrets/AWS_CREDENTIALS
   IPTS_CONNECTION_FILE: /run/secrets/IPTS_CONNECTION
@@ -42,9 +73,9 @@ services:
     container_name: spark-node-master-dev
     hostname: spark-node-master-dev
     restart: no
+    command: *master-command
     environment:
       <<: *spark-env
-      SPARK_MODE: master
       SPARK_MASTER_URL: spark://spark-node-master-dev:7077
       SPARK_UI_PORT: 4041
       SPARK_EXECUTOR_MEMORY: 32g
@@ -62,9 +93,9 @@ services:
     image: ghcr.io/ccao-data/service-spark-iasworld:dev
     container_name: spark-node-worker-dev
     restart: no
+    command: *worker-command
     environment:
       <<: *spark-env
-      SPARK_MODE: worker
       SPARK_MASTER_URL: spark://spark-node-master-dev:7077
       SPARK_WORKER_MEMORY: 32g
       SPARK_WORKER_CORES: 16
@@ -79,9 +110,9 @@ services:
     container_name: spark-node-master-prod
     hostname: spark-node-master-prod
     restart: unless-stopped
+    command: *master-command
     environment:
       <<: *spark-env
-      SPARK_MODE: master
       SPARK_MASTER_URL: spark://spark-node-master-prod:7077
       SPARK_UI_PORT: 4040
       SPARK_EXECUTOR_MEMORY: 60g
@@ -100,9 +131,9 @@ services:
     image: ghcr.io/ccao-data/service-spark-iasworld:latest
     container_name: spark-node-worker-prod
     restart: unless-stopped
+    command: *worker-command
     environment:
       <<: *spark-env
-      SPARK_MODE: worker
       SPARK_MASTER_URL: spark://spark-node-master-prod:7077
       SPARK_WORKER_MEMORY: 60G
       SPARK_WORKER_CORES: 24
