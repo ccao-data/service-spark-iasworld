@@ -20,7 +20,7 @@ set -euo pipefail
 # restarts. It also leaves existing users like `spark` and `root` alone.
 if ! getent passwd "$(id -u)" &> /dev/null; then
     # A passwd entry has 7 colon-separated fields:
-    #   `name:password:UID:GID:description:home directory:login shell`
+    #   `name:password:UID:GID:description:home_directory:login_shell`
     # - `x` is the standard placeholder that indicates the password isn't stored
     #   in this file. This user has no password, since nothing logs in as it.
     # - The GID is 0 (root group), matching `user: <UID>:0` in our Compose file.
