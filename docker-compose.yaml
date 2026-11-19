@@ -22,10 +22,36 @@ x-default: &node
     - sparknet
 
 # Commands to start each node type (master and worker).
-# Workers read their memory, cores, and UI port from the `SPARK_WORKER_*`
-# env vars
+#
+# We want to start Spark using the standalone mode, documented here:
+# https://spark.apache.org/docs/3.5.9/spark-standalone.html
+# However, we don't want to use the recommended `start-*.sh` scripts because
+# those scripts start Spark as a daemon process and so are not a good fit for
+# containerized services. Instead, we use the `spark-class` command to start
+# the Spark processes directly, which is what the `start-*.sh` scripts do under
+# the hood.
+#
+# See this StackOverflow answer for documentation of this approach:
+# https://stackoverflow.com/a/39671404
+#
+# We use exec form (a list of arguments) so that Spark runs as PID 1 and
+# receives signals like SIGTERM from `docker stop` directly.
 x-master-command: &master-command
   ["spark-class", "org.apache.spark.deploy.master.Master"]
+
+# Pass the worker command to Docker wrapped in a `bash -c exec` call. This is
+# important because the worker needs to expand the `SPARK_MASTER_URL` env var at
+# runtime, but Docker can't expand variables at runtime when a command is
+# specified using exec form. To work around this limitation, we run the command
+# in a shell (`bash -c`) to expand the env var, and then we replace the shell
+# with the command using `exec` so that it runs as PID 1 and receives SIGTERM.
+# See these docs for more info about variable substitution in exec form:
+# https://docs.docker.com/reference/dockerfile/#variable-substitution
+#
+# We use an extra dollar sign when referencing the `SPARK_MASTER_URL` env var
+# in order to prevent the Compose file from interpolating the variable from the
+# host environment at parse time. See:
+# https://docs.docker.com/reference/compose-file/interpolation/
 x-worker-command: &worker-command
   ["bash", "-c",
    "exec spark-class org.apache.spark.deploy.worker.Worker \"$$SPARK_MASTER_URL\""]

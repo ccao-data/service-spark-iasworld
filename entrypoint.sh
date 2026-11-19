@@ -4,8 +4,8 @@
 # image's entrypoint.
 #
 # Our Compose file runs containers as the host user's UID, which doesn't
-# exist in the image, so Spark and Hadoop can't look up a username or home
-# directory and crash. The Dockerfile sets up `nss_wrapper` so that user lookups
+# exist in the image, so Spark will crash because it can't look up a username
+# or home directory. The Dockerfile sets up `nss_wrapper` so that user lookups
 # read from the file indicated by `$NSS_WRAPPER_PASSWD` instead of
 # `/etc/passwd`, and this entrypoint adds the current UID to that file.
 #
@@ -17,23 +17,23 @@ set -euo pipefail
 # none. `nss_wrapper` intercepts it, so this checks the wrapper file, not the
 # real `/etc/passwd` file. By skipping the write when an entry exists, we avoid
 # duplicate entries when the container restarts, since the file persists across
-# restarts. It also leaves real users like `spark` and `root` alone.
+# restarts. It also leaves existing users like `spark` and `root` alone.
 if ! getent passwd "$(id -u)" &> /dev/null; then
     # A passwd entry has 7 colon-separated fields:
-    #   name:password:UID:GID:description:home directory:login shell
-    # - `x` is the standard placeholder meaning the password isn't stored in
-    #   this file. This user has no password, since nothing logs in as it
-    # - The GID is 0 (root group), matching `user: <UID>:0` in Compose. That
-    #   group already exists in the copied group file, so no group entry is
-    #   needed
+    #   `name:password:UID:GID:description:home directory:login shell`
+    # - `x` is the standard placeholder that indicates the password isn't stored
+    #   in this file. This user has no password, since nothing logs in as it.
+    # - The GID is 0 (root group), matching `user: <UID>:0` in our Compose file.
+    #   That group already exists in the copied group file, so no group entry is
+    #   needed.
     # - The home directory is `/tmp` because it's writable. Spark keeps a cache
-    #   in the home directory
-    # - `/bin/false` as the shell means the user can't open a login session
+    #   in the home directory.
+    # - `/bin/false` as the shell means the user can't open a login session.
     echo "spark-host:x:$(id -u):$(id -g):Spark host user:/tmp:/bin/false" \
         >> "$NSS_WRAPPER_PASSWD"
 fi
 
 # Hand off execution to the base image's entrypoint, which runs the container
 # command. `exec` replaces this script with that process, so `docker stop`
-# signals reach Spark directly
+# signals reach Spark directly.
 exec /opt/entrypoint.sh "$@"
